@@ -18,7 +18,7 @@ jobs:
           - target: aarch64-linux-gnu
             runner: ubuntu-24.04-arm
           - target: x86_64-apple-darwin
-            runner: macos-13
+            runner: macos-15-intel
           - target: aarch64-apple-darwin
             runner: macos-14
 
@@ -33,7 +33,7 @@ jobs:
         uses: erlef/setup-beam@v1
         with:
           otp-version: "27"
-          elixir-version: "1.18"
+          elixir-version: "1.19"
 
       - name: Install Erlang & Elixir (macOS)
         if: runner.os == 'macOS'
@@ -80,7 +80,7 @@ jobs:
         uses: erlef/setup-beam@v1
         with:
           otp-version: "27"
-          elixir-version: "1.18"
+          elixir-version: "1.19"
 
       - name: Fetch dependencies
         run: mix deps.get

@@ -49,12 +49,16 @@ else
 endif
 
 # CMake flags for compiler passthrough
+# cc_precompiler may set CC="gcc -arch arm64" which breaks CMake's
+# -DCMAKE_C_COMPILER flag. Extract just the compiler binary (first word).
 CMAKE_EXTRA_FLAGS =
-ifdef CC
-CMAKE_EXTRA_FLAGS += -DCMAKE_C_COMPILER=$(CC)
+CMAKE_CC := $(firstword $(CC))
+CMAKE_CXX := $(firstword $(CXX))
+ifneq ($(CMAKE_CC),)
+CMAKE_EXTRA_FLAGS += -DCMAKE_C_COMPILER=$(CMAKE_CC)
 endif
-ifdef CXX
-CMAKE_EXTRA_FLAGS += -DCMAKE_CXX_COMPILER=$(CXX)
+ifneq ($(CMAKE_CXX),)
+CMAKE_EXTRA_FLAGS += -DCMAKE_CXX_COMPILER=$(CMAKE_CXX)
 endif
 
 # Handle macOS architecture when cross-compiling via cc_precompiler
