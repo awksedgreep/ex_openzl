@@ -57,12 +57,13 @@ jobs:
         run: mix elixir_make.precompile
         env:
           CC_PRECOMPILER_CURRENT_TARGET: ${{ matrix.target }}
+          ELIXIR_MAKE_CACHE_DIR: ${{ github.workspace }}/cache
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: nif-${{ matrix.target }}
-          path: "*.tar.gz"
+          path: cache/*.tar.gz
           if-no-files-found: error
 
   release:
@@ -101,9 +102,9 @@ jobs:
           files: artifacts/*.tar.gz
 
       - name: Generate checksums
-        run: |
-          mv artifacts/*.tar.gz .
-          mix elixir_make.checksum --all --ignore-unavailable
+        run: mix elixir_make.checksum --all --ignore-unavailable
+        env:
+          ELIXIR_MAKE_CACHE_DIR: ${{ github.workspace }}/artifacts
 
       - name: Commit checksum.exs
         run: |
