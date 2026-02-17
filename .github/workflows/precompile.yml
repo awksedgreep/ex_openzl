@@ -1,0 +1,115 @@
+name: Precompile NIF binaries
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-linux-gnu
+            runner: ubuntu-latest
+          - target: aarch64-linux-gnu
+            runner: ubuntu-24.04-arm
+          - target: x86_64-apple-darwin
+            runner: macos-13
+          - target: aarch64-apple-darwin
+            runner: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Erlang & Elixir (Linux)
+        if: runner.os == 'Linux'
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: "27"
+          elixir-version: "1.18"
+
+      - name: Install Erlang & Elixir (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install erlang elixir
+          mix local.hex --force
+          mix local.rebar --force
+
+      - name: Install CMake (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y cmake
+
+      - name: Install CMake (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake
+
+      - name: Fetch dependencies
+        run: mix deps.get
+
+      - name: Precompile
+        run: mix elixir_make.precompile
+        env:
+          CC_PRECOMPILER_CURRENT_TARGET: ${{ matrix.target }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nif-${{ matrix.target }}
+          path: "*.tar.gz"
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Erlang & Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: "27"
+          elixir-version: "1.18"
+
+      - name: Fetch dependencies
+        run: mix deps.get
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: nif-*
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -la artifacts/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.tar.gz
+
+      - name: Generate checksums
+        run: |
+          mv artifacts/*.tar.gz .
+          mix elixir_make.checksum --all --ignore-unavailable
+
+      - name: Commit checksum.exs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout main || git checkout master
+          git add checksum.exs
+          git diff --cached --quiet || git commit -m "Update checksum.exs for ${GITHUB_REF_NAME}"
+          git push
