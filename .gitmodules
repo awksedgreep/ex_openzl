@@ -1,0 +1,3 @@
+[submodule "c_src/openzl"]
+	path = c_src/openzl
+	url = https://github.com/facebook/openzl.git
