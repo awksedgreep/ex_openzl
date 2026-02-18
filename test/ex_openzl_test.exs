@@ -39,8 +39,8 @@ defmodule ExOpenzlTest do
 
   describe "context-based compression" do
     test "roundtrips with reusable contexts" do
-      cctx = ExOpenzl.create_compression_context()
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
 
       assert is_reference(cctx)
       assert is_reference(dctx)
@@ -51,8 +51,8 @@ defmodule ExOpenzlTest do
     end
 
     test "context can be reused across multiple calls" do
-      cctx = ExOpenzl.create_compression_context()
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
 
       for i <- 1..10 do
         original = "Message number #{i}: #{String.duplicate("x", i * 100)}"
@@ -82,8 +82,8 @@ defmodule ExOpenzlTest do
 
   describe "set_compression_level/2" do
     test "sets compression level and compresses successfully" do
-      cctx = ExOpenzl.create_compression_context()
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
 
       assert :ok = ExOpenzl.set_compression_level(cctx, 9)
 
@@ -95,11 +95,11 @@ defmodule ExOpenzlTest do
     test "higher levels produce smaller output" do
       data = String.duplicate("Repeated data for compression level comparison. ", 1000)
 
-      cctx_low = ExOpenzl.create_compression_context()
+      {:ok, cctx_low} = ExOpenzl.create_compression_context()
       assert :ok = ExOpenzl.set_compression_level(cctx_low, 1)
       assert {:ok, compressed_low} = ExOpenzl.compress(cctx_low, data)
 
-      cctx_high = ExOpenzl.create_compression_context()
+      {:ok, cctx_high} = ExOpenzl.create_compression_context()
       assert :ok = ExOpenzl.set_compression_level(cctx_high, 19)
       assert {:ok, compressed_high} = ExOpenzl.compress(cctx_high, data)
 
@@ -107,11 +107,11 @@ defmodule ExOpenzlTest do
     end
 
     test "roundtrips at different levels" do
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
       original = String.duplicate("Level test ", 200)
 
       for level <- [1, 3, 6, 9, 12] do
-        cctx = ExOpenzl.create_compression_context()
+        {:ok, cctx} = ExOpenzl.create_compression_context()
         assert :ok = ExOpenzl.set_compression_level(cctx, level)
         assert {:ok, compressed} = ExOpenzl.compress(cctx, original)
         assert {:ok, ^original} = ExOpenzl.decompress(dctx, compressed)
@@ -125,8 +125,8 @@ defmodule ExOpenzlTest do
 
   describe "compress_typed/2 - numeric" do
     test "roundtrips u64 numeric data" do
-      cctx = ExOpenzl.create_compression_context()
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
 
       # 100 u64 timestamps (little-endian)
       timestamps =
@@ -143,8 +143,8 @@ defmodule ExOpenzlTest do
     end
 
     test "roundtrips u8 numeric data" do
-      cctx = ExOpenzl.create_compression_context()
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
 
       data = :binary.copy(<<0, 1, 2, 3, 4, 5, 6, 7>>, 50)
 
@@ -157,8 +157,8 @@ defmodule ExOpenzlTest do
     end
 
     test "roundtrips u16 numeric data" do
-      cctx = ExOpenzl.create_compression_context()
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
 
       data =
         for i <- 1..200, into: <<>> do
@@ -174,8 +174,8 @@ defmodule ExOpenzlTest do
     end
 
     test "roundtrips u32 numeric data" do
-      cctx = ExOpenzl.create_compression_context()
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
 
       data =
         for i <- 1..150, into: <<>> do
@@ -191,7 +191,7 @@ defmodule ExOpenzlTest do
     end
 
     test "returns error for invalid element_width" do
-      cctx = ExOpenzl.create_compression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
       data = :binary.copy(<<0, 1, 2>>, 10)
 
       assert {:error, _reason} = ExOpenzl.compress_typed(cctx, {:numeric, data, 3})
@@ -200,20 +200,20 @@ defmodule ExOpenzlTest do
     end
 
     test "returns error for misaligned data" do
-      cctx = ExOpenzl.create_compression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
       # 7 bytes is not a multiple of 4
       data = <<1, 2, 3, 4, 5, 6, 7>>
       assert {:error, _reason} = ExOpenzl.compress_typed(cctx, {:numeric, data, 4})
     end
 
     test "returns error for empty data" do
-      cctx = ExOpenzl.create_compression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
       assert {:error, _reason} = ExOpenzl.compress_typed(cctx, {:numeric, <<>>, 8})
     end
 
     test "roundtrips large numeric dataset" do
-      cctx = ExOpenzl.create_compression_context()
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
 
       # 10,000 u64 values - monotonically increasing (highly compressible)
       data =
@@ -231,8 +231,8 @@ defmodule ExOpenzlTest do
 
   describe "compress_typed/2 - struct" do
     test "roundtrips fixed-width struct data" do
-      cctx = ExOpenzl.create_compression_context()
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
 
       # 100 records, 12 bytes each (u64 timestamp + u32 value)
       records =
@@ -249,27 +249,27 @@ defmodule ExOpenzlTest do
     end
 
     test "returns error for misaligned struct data" do
-      cctx = ExOpenzl.create_compression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
       # 10 bytes is not a multiple of struct_width=3
       data = <<1, 2, 3, 4, 5, 6, 7, 8, 9, 10>>
       assert {:error, _reason} = ExOpenzl.compress_typed(cctx, {:struct, data, 3})
     end
 
     test "returns error for zero struct_width" do
-      cctx = ExOpenzl.create_compression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
       assert {:error, _reason} = ExOpenzl.compress_typed(cctx, {:struct, <<1, 2, 3>>, 0})
     end
 
     test "returns error for empty struct data" do
-      cctx = ExOpenzl.create_compression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
       assert {:error, _reason} = ExOpenzl.compress_typed(cctx, {:struct, <<>>, 4})
     end
   end
 
   describe "compress_typed/2 - string" do
     test "roundtrips variable-length string data" do
-      cctx = ExOpenzl.create_compression_context()
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
 
       strings = ["hello", "world", "foo", "bar baz"]
       concat = Enum.join(strings)
@@ -288,8 +288,8 @@ defmodule ExOpenzlTest do
     end
 
     test "string lengths roundtrip with correct values" do
-      cctx = ExOpenzl.create_compression_context()
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
 
       strings = ["alpha", "beta", "gamma", "delta", "epsilon"]
       concat = Enum.join(strings)
@@ -320,8 +320,8 @@ defmodule ExOpenzlTest do
     end
 
     test "roundtrips many short strings" do
-      cctx = ExOpenzl.create_compression_context()
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
 
       strings = for i <- 1..500, do: "msg#{i}"
       concat = Enum.join(strings)
@@ -338,12 +338,12 @@ defmodule ExOpenzlTest do
     end
 
     test "returns error for empty string data" do
-      cctx = ExOpenzl.create_compression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
       assert {:error, _reason} = ExOpenzl.compress_typed(cctx, {:string, <<>>, <<4::native-unsigned-32>>})
     end
 
     test "returns error for misaligned lengths binary" do
-      cctx = ExOpenzl.create_compression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
       # 3 bytes is not a multiple of 4
       assert {:error, _reason} = ExOpenzl.compress_typed(cctx, {:string, "hello", <<1, 2, 3>>})
     end
@@ -351,8 +351,8 @@ defmodule ExOpenzlTest do
 
   describe "compress_multi_typed/2 and decompress_multi_typed/2" do
     test "roundtrips multiple typed inputs in one frame" do
-      cctx = ExOpenzl.create_compression_context()
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
 
       # Timestamps (u64)
       timestamps =
@@ -382,8 +382,8 @@ defmodule ExOpenzlTest do
     end
 
     test "roundtrips mixed types: numeric + struct + string" do
-      cctx = ExOpenzl.create_compression_context()
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
 
       # Timestamps (u64 numeric)
       timestamps =
@@ -427,8 +427,8 @@ defmodule ExOpenzlTest do
     end
 
     test "roundtrips single input through multi path" do
-      cctx = ExOpenzl.create_compression_context()
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
 
       data =
         for i <- 1..100, into: <<>> do
@@ -444,12 +444,12 @@ defmodule ExOpenzlTest do
     end
 
     test "returns error for empty input list" do
-      cctx = ExOpenzl.create_compression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
       assert {:error, _reason} = ExOpenzl.compress_multi_typed(cctx, [])
     end
 
     test "returns error for invalid tuple in list" do
-      cctx = ExOpenzl.create_compression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
       data = <<1, 2, 3, 4, 5, 6, 7, 8>>
       # Invalid type atom
       assert {:error, _reason} = ExOpenzl.compress_multi_typed(cctx, [{:invalid_type, data, 1}])
@@ -463,18 +463,18 @@ defmodule ExOpenzlTest do
           <<1_700_000_000 + i::little-unsigned-64>>
         end
 
-      cctx_low = ExOpenzl.create_compression_context()
+      {:ok, cctx_low} = ExOpenzl.create_compression_context()
       assert :ok = ExOpenzl.set_compression_level(cctx_low, 1)
       assert {:ok, compressed_low} = ExOpenzl.compress_typed(cctx_low, {:numeric, data, 8})
 
-      cctx_high = ExOpenzl.create_compression_context()
+      {:ok, cctx_high} = ExOpenzl.create_compression_context()
       assert :ok = ExOpenzl.set_compression_level(cctx_high, 19)
       assert {:ok, compressed_high} = ExOpenzl.compress_typed(cctx_high, {:numeric, data, 8})
 
       assert byte_size(compressed_high) <= byte_size(compressed_low)
 
       # Both decompress correctly
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
       assert {:ok, info_low} = ExOpenzl.decompress_typed(dctx, compressed_low)
       assert {:ok, info_high} = ExOpenzl.decompress_typed(dctx, compressed_high)
       assert info_low.data == data
@@ -484,8 +484,8 @@ defmodule ExOpenzlTest do
 
   describe "compression level stickiness" do
     test "level persists across multiple compress calls on same context" do
-      cctx = ExOpenzl.create_compression_context()
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
 
       assert :ok = ExOpenzl.set_compression_level(cctx, 15)
 
@@ -499,7 +499,7 @@ defmodule ExOpenzlTest do
 
   describe "frame_info/1" do
     test "returns metadata for a single-output frame" do
-      cctx = ExOpenzl.create_compression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
 
       data =
         for i <- 1..100, into: <<>> do
@@ -518,7 +518,7 @@ defmodule ExOpenzlTest do
     end
 
     test "returns metadata for a multi-output frame" do
-      cctx = ExOpenzl.create_compression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
 
       timestamps = for i <- 1..50, into: <<>>, do: <<i::little-unsigned-64>>
       levels = :binary.copy(<<1, 2, 3>>, 10)
@@ -542,7 +542,7 @@ defmodule ExOpenzlTest do
     end
 
     test "per-output metadata includes type and size for mixed frame" do
-      cctx = ExOpenzl.create_compression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
 
       u64_data = for i <- 1..20, into: <<>>, do: <<i::little-unsigned-64>>
       u8_data = :binary.copy(<<1, 2, 3, 4, 5>>, 10)
@@ -566,24 +566,24 @@ defmodule ExOpenzlTest do
 
   describe "decompress_typed/2 error paths" do
     test "returns error for empty input" do
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
       assert {:error, _reason} = ExOpenzl.decompress_typed(dctx, <<>>)
     end
 
     test "returns error for invalid compressed data" do
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
       assert {:error, _reason} = ExOpenzl.decompress_typed(dctx, "not valid data")
     end
   end
 
   describe "decompress_multi_typed/2 error paths" do
     test "returns error for empty input" do
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
       assert {:error, _reason} = ExOpenzl.decompress_multi_typed(dctx, <<>>)
     end
 
     test "returns error for invalid compressed data" do
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
       assert {:error, _reason} = ExOpenzl.decompress_multi_typed(dctx, "not valid data")
     end
   end
@@ -643,7 +643,7 @@ defmodule ExOpenzlTest do
           :ok
 
         {:ok, compressor} ->
-          cctx = ExOpenzl.create_compression_context()
+          {:ok, cctx} = ExOpenzl.create_compression_context()
           assert :ok = ExOpenzl.set_compressor(cctx, compressor)
           assert {:error, _reason} = ExOpenzl.compress(cctx, "some data to compress")
       end
@@ -660,8 +660,8 @@ defmodule ExOpenzlTest do
       assert {:ok, compressor} = ExOpenzl.create_sddl_compressor(compiled)
       assert is_reference(compressor)
 
-      cctx = ExOpenzl.create_compression_context()
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
 
       assert :ok = ExOpenzl.set_compressor(cctx, compressor)
 
@@ -688,7 +688,7 @@ defmodule ExOpenzlTest do
         end
 
       # SDDL-aware compression
-      cctx_sddl = ExOpenzl.create_compression_context()
+      {:ok, cctx_sddl} = ExOpenzl.create_compression_context()
       assert :ok = ExOpenzl.set_compressor(cctx_sddl, compressor)
       assert {:ok, compressed_sddl} = ExOpenzl.compress(cctx_sddl, records)
 
@@ -699,7 +699,7 @@ defmodule ExOpenzlTest do
              "SDDL compressed: #{byte_size(compressed_sddl)}, plain: #{byte_size(compressed_plain)}"
 
       # Both decompress correctly
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
       assert {:ok, ^records} = ExOpenzl.decompress(dctx, compressed_sddl)
     end
 
@@ -708,10 +708,10 @@ defmodule ExOpenzlTest do
       assert {:ok, compiled} = ExOpenzl.sddl_compile(source)
       assert {:ok, compressor} = ExOpenzl.create_sddl_compressor(compiled)
 
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
 
       for batch <- 1..3 do
-        cctx = ExOpenzl.create_compression_context()
+        {:ok, cctx} = ExOpenzl.create_compression_context()
         assert :ok = ExOpenzl.set_compressor(cctx, compressor)
 
         data =
@@ -738,8 +738,8 @@ defmodule ExOpenzlTest do
       assert {:ok, compiled} = ExOpenzl.sddl_compile(source)
       assert {:ok, compressor} = ExOpenzl.create_sddl_compressor(compiled)
 
-      cctx = ExOpenzl.create_compression_context()
-      dctx = ExOpenzl.create_decompression_context()
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
       assert :ok = ExOpenzl.set_compressor(cctx, compressor)
 
       records =

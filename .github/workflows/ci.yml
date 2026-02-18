@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test (OTP ${{ matrix.otp }} / Elixir ${{ matrix.elixir }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - otp: "27"
+            elixir: "1.19"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Erlang & Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ matrix.otp }}
+          elixir-version: ${{ matrix.elixir }}
+
+      - name: Install CMake
+        run: sudo apt-get update && sudo apt-get install -y cmake
+
+      - name: Fetch dependencies
+        run: mix deps.get
+
+      - name: Compile
+        run: mix compile --warnings-as-errors
+
+      - name: Run tests
+        run: mix test

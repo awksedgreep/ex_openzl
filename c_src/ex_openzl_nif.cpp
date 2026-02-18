@@ -18,11 +18,7 @@ class Compressor {
 public:
   ZL_Compressor *compressor;
 
-  Compressor() : compressor(ZL_Compressor_create()) {
-    if (!compressor) {
-      throw std::runtime_error("failed to create OpenZL compressor");
-    }
-  }
+  Compressor() noexcept : compressor(ZL_Compressor_create()) {}
 
   ~Compressor() {
     if (compressor) {
@@ -48,24 +44,7 @@ public:
   // Hold a reference to attached compressor to prevent GC
   std::optional<fine::ResourcePtr<Compressor>> compressor_ref;
 
-  CCtx() : ctx(ZL_CCtx_create()), default_compressor(nullptr) {
-    if (!ctx) {
-      throw std::runtime_error("failed to create OpenZL compression context");
-    }
-    (void)ZL_CCtx_setParameter(ctx, ZL_CParam_formatVersion,
-                               static_cast<int>(ZL_getDefaultEncodingVersion()));
-    (void)ZL_CCtx_setParameter(ctx, ZL_CParam_stickyParameters, 1);
-
-    // Set up default generic compressor so typed compression works
-    default_compressor = ZL_Compressor_create();
-    if (default_compressor) {
-      ZL_Report result = ZL_Compressor_selectStartingGraphID(
-          default_compressor, ZL_GRAPH_COMPRESS_GENERIC);
-      if (!ZL_isError(result)) {
-        (void)ZL_CCtx_refCompressor(ctx, default_compressor);
-      }
-    }
-  }
+  CCtx() noexcept : ctx(ZL_CCtx_create()), default_compressor(nullptr) {}
 
   ~CCtx() {
     if (ctx) {
@@ -90,12 +69,7 @@ class DCtx {
 public:
   ZL_DCtx *ctx;
 
-  DCtx() : ctx(ZL_DCtx_create()) {
-    if (!ctx) {
-      throw std::runtime_error(
-          "failed to create OpenZL decompression context");
-    }
-  }
+  DCtx() noexcept : ctx(ZL_DCtx_create()) {}
 
   ~DCtx() {
     if (ctx) {
@@ -324,9 +298,51 @@ FINE_NIF(nif_decompress_with_context, ERL_NIF_DIRTY_JOB_CPU_BOUND);
 // NIF: create_compression_context/0
 // ---------------------------------------------------------------------------
 
-static fine::ResourcePtr<CCtx>
+static std::variant<fine::Ok<fine::ResourcePtr<CCtx>>, fine::Error<std::string>>
 nif_create_compression_context(ErlNifEnv *env) {
-  return fine::make_resource<CCtx>();
+  auto cctx = fine::make_resource<CCtx>();
+
+  if (!cctx->ctx) {
+    return fine::Error(std::string("failed to create compression context"));
+  }
+
+  ZL_Report r1 = ZL_CCtx_setParameter(
+      cctx->ctx, ZL_CParam_formatVersion,
+      static_cast<int>(ZL_getDefaultEncodingVersion()));
+  if (ZL_isError(r1)) {
+    const char *err = ZL_CCtx_getErrorContextString(cctx->ctx, r1);
+    std::string msg = err ? std::string(err) : "failed to set format version";
+    return fine::Error(std::move(msg));
+  }
+
+  ZL_Report r2 =
+      ZL_CCtx_setParameter(cctx->ctx, ZL_CParam_stickyParameters, 1);
+  if (ZL_isError(r2)) {
+    const char *err = ZL_CCtx_getErrorContextString(cctx->ctx, r2);
+    std::string msg =
+        err ? std::string(err) : "failed to set sticky parameters";
+    return fine::Error(std::move(msg));
+  }
+
+  // Set up default generic compressor so typed compression works
+  cctx->default_compressor = ZL_Compressor_create();
+  if (cctx->default_compressor) {
+    ZL_Report result = ZL_Compressor_selectStartingGraphID(
+        cctx->default_compressor, ZL_GRAPH_COMPRESS_GENERIC);
+    if (!ZL_isError(result)) {
+      ZL_Report ref_result =
+          ZL_CCtx_refCompressor(cctx->ctx, cctx->default_compressor);
+      if (ZL_isError(ref_result)) {
+        const char *err =
+            ZL_CCtx_getErrorContextString(cctx->ctx, ref_result);
+        std::string msg =
+            err ? std::string(err) : "failed to attach default compressor";
+        return fine::Error(std::move(msg));
+      }
+    }
+  }
+
+  return fine::Ok(std::move(cctx));
 }
 
 FINE_NIF(nif_create_compression_context, 0);
@@ -335,9 +351,15 @@ FINE_NIF(nif_create_compression_context, 0);
 // NIF: create_decompression_context/0
 // ---------------------------------------------------------------------------
 
-static fine::ResourcePtr<DCtx>
+static std::variant<fine::Ok<fine::ResourcePtr<DCtx>>, fine::Error<std::string>>
 nif_create_decompression_context(ErlNifEnv *env) {
-  return fine::make_resource<DCtx>();
+  auto dctx = fine::make_resource<DCtx>();
+
+  if (!dctx->ctx) {
+    return fine::Error(std::string("failed to create decompression context"));
+  }
+
+  return fine::Ok(std::move(dctx));
 }
 
 FINE_NIF(nif_create_decompression_context, 0);
@@ -956,6 +978,10 @@ nif_create_sddl_compressor(ErlNifEnv *env, std::string_view compiled) {
   }
 
   auto comp = fine::make_resource<Compressor>();
+
+  if (!comp->compressor) {
+    return fine::Error(std::string("failed to create compressor"));
+  }
 
   // Build the SDDL graph with generic clustering as successor
   auto graph_result = ZL_SDDL_setupProfile(

@@ -32,12 +32,23 @@ Add `ex_openzl` to your dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:ex_openzl, "~> 0.2.0"}
+    {:ex_openzl, "~> 0.4"}
   ]
 end
 ```
 
 The NIF is compiled automatically via `elixir_make`. The first build will compile the OpenZL C library from source (takes ~1 minute).
+
+### Precompiled binaries
+
+Precompiled NIF binaries are available for the following targets:
+
+- `x86_64-linux-gnu`
+- `aarch64-linux-gnu`
+- `x86_64-apple-darwin`
+- `aarch64-apple-darwin`
+
+If a precompiled binary is available for your platform, `mix compile` will download it automatically — no C++ toolchain required.
 
 ## Usage
 
@@ -53,12 +64,12 @@ data = "hello world, this is a test of OpenZL compression"
 ### Reusable contexts
 
 ```elixir
-cctx = ExOpenzl.create_compression_context()
+{:ok, cctx} = ExOpenzl.create_compression_context()
 :ok = ExOpenzl.set_compression_level(cctx, 9)
 
 {:ok, compressed} = ExOpenzl.compress(cctx, data)
 
-dctx = ExOpenzl.create_decompression_context()
+{:ok, dctx} = ExOpenzl.create_decompression_context()
 {:ok, ^data} = ExOpenzl.decompress(dctx, compressed)
 ```
 
@@ -67,7 +78,7 @@ dctx = ExOpenzl.create_decompression_context()
 Pack structured data into typed columns for better compression ratios:
 
 ```elixir
-cctx = ExOpenzl.create_compression_context()
+{:ok, cctx} = ExOpenzl.create_compression_context()
 
 # Timestamps: packed u64 little-endian (delta coding)
 timestamps = <<1000::little-64, 1001::little-64, 1002::little-64>>
@@ -86,7 +97,7 @@ msg_lengths = <<5::little-32, 5::little-32, 2::little-32>>
 ])
 
 # Decompress
-dctx = ExOpenzl.create_decompression_context()
+{:ok, dctx} = ExOpenzl.create_decompression_context()
 {:ok, [ts_info, lv_info, msg_info]} = ExOpenzl.decompress_multi_typed(dctx, compressed)
 ```
 
@@ -103,12 +114,16 @@ dctx = ExOpenzl.create_decompression_context()
 {:ok, compiled} = ExOpenzl.sddl_compile("u32 timestamp; u8 level;")
 {:ok, compressor} = ExOpenzl.create_sddl_compressor(compiled)
 
-cctx = ExOpenzl.create_compression_context()
+{:ok, cctx} = ExOpenzl.create_compression_context()
 :ok = ExOpenzl.set_compressor(cctx, compressor)
 
 # Now compress/2 uses the format-aware graph
 {:ok, compressed} = ExOpenzl.compress(cctx, data)
 ```
+
+## Thread safety
+
+Compression and decompression contexts are **not** thread-safe. Each context should be used by a single Erlang/Elixir process at a time. If you need to compress or decompress from multiple concurrent processes, create a separate context per process.
 
 ## Hardware acceleration
 

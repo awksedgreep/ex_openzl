@@ -5,6 +5,13 @@ defmodule ExOpenzl do
   Provides one-shot compression and decompression of binary data, with
   optional reusable contexts for amortizing setup cost across many operations.
   Supports typed/columnar compression and SDDL format-aware compression.
+
+  ## Thread Safety
+
+  Compression and decompression contexts are **not** thread-safe. Each context
+  should be used by a single Erlang/Elixir process at a time. If you need to
+  compress or decompress from multiple concurrent processes, create a separate
+  context per process rather than sharing one.
   """
 
   alias ExOpenzl.NIF
@@ -54,16 +61,22 @@ defmodule ExOpenzl do
   Creates a reusable compression context.
 
   The context is garbage-collected when no longer referenced.
+
+  Contexts are not thread-safe — do not share a context across concurrent
+  processes without external synchronization.
   """
-  @spec create_compression_context() :: reference()
+  @spec create_compression_context() :: {:ok, reference()} | {:error, String.t()}
   def create_compression_context, do: NIF.nif_create_compression_context()
 
   @doc """
   Creates a reusable decompression context.
 
   The context is garbage-collected when no longer referenced.
+
+  Contexts are not thread-safe — do not share a context across concurrent
+  processes without external synchronization.
   """
-  @spec create_decompression_context() :: reference()
+  @spec create_decompression_context() :: {:ok, reference()} | {:error, String.t()}
   def create_decompression_context, do: NIF.nif_create_decompression_context()
 
   @doc """
