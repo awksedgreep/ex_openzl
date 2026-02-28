@@ -115,3 +115,8 @@ jobs:
           git add checksum.exs
           git diff --cached --quiet || git commit -m "Update checksum.exs for ${GITHUB_REF_NAME}"
           git push
+
+      - name: Publish to Hex
+        run: mix hex.publish --yes
+        env:
+          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
