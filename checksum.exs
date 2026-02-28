@@ -1,6 +1,6 @@
 %{
-  "ex_openzl-nif-2.17-aarch64-apple-darwin-0.4.1.tar.gz" => "sha256:5d1790e4b498fed0fb6c40457d72f05bf4e512c31a70fc6189a90cea652fcf22",
-  "ex_openzl-nif-2.17-aarch64-linux-gnu-0.4.1.tar.gz" => "sha256:7a947a5bfd63ac02590f6ae62b40799ef453e5f971b7d710d1cb89387e56f304",
-  "ex_openzl-nif-2.17-x86_64-apple-darwin-0.4.1.tar.gz" => "sha256:5ad63daf0d0865aaee9a0d74de4faadc4f6f331d938b01907591bf0138fbb5c5",
-  "ex_openzl-nif-2.17-x86_64-linux-gnu-0.4.1.tar.gz" => "sha256:d1303fbea6c1a7f23bee969db8439662dfa22aef718b90f07164f1968ed1a0c6",
+  "ex_openzl-nif-2.17-aarch64-apple-darwin-0.4.2.tar.gz" => "sha256:2bc83f69c10d3199e390cedd40b6bce8a3ff16cd8f9c9b65f2afa1b53a3afdb1",
+  "ex_openzl-nif-2.17-aarch64-linux-gnu-0.4.2.tar.gz" => "sha256:6970900def20ee8ae170cb3e157126a8edf03b3f51fd179bda3286499718f339",
+  "ex_openzl-nif-2.17-x86_64-apple-darwin-0.4.2.tar.gz" => "sha256:ee23114e9d56abeb7e9dff783e60c17a784ef5ca016d56021147fa9d432e4577",
+  "ex_openzl-nif-2.17-x86_64-linux-gnu-0.4.2.tar.gz" => "sha256:d8a24bdf32b498338a792ed6fb78b0df27a7e0747e0f274642c1ab327ec137fd",
 }
