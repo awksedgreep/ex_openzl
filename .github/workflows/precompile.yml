@@ -108,8 +108,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          cp checksum.exs /tmp/checksum.exs
           git fetch origin main
           git checkout main
+          cp /tmp/checksum.exs checksum.exs
           git add checksum.exs
           git diff --cached --quiet || git commit -m "Update checksum.exs for ${GITHUB_REF_NAME}"
           git push
