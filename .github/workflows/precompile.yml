@@ -22,13 +22,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           submodules: recursive
 
       - name: Install Erlang & Elixir (Linux)
         if: runner.os == 'Linux'
-        uses: erlef/setup-beam@v1
+        uses: erlef/setup-beam@v2
         with:
           otp-version: "27"
           elixir-version: "1.19"
@@ -58,7 +58,7 @@ jobs:
           ELIXIR_MAKE_CACHE_DIR: ${{ github.workspace }}/cache
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: nif-${{ matrix.target }}
           path: cache/*.tar.gz
@@ -73,10 +73,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install Erlang & Elixir
-        uses: erlef/setup-beam@v1
+        uses: erlef/setup-beam@v2
         with:
           otp-version: "27"
           elixir-version: "1.19"
@@ -85,7 +85,7 @@ jobs:
         run: mix deps.get
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: artifacts
           pattern: nif-*
