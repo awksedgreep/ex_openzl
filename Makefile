@@ -6,8 +6,9 @@ NIF_SO = $(PRIV_DIR)/ex_openzl_nif.so
 ERTS_INCLUDE_DIR ?= $(shell erl -noshell -eval "io:format(\"~s/erts-~s/include\", [code:root_dir(), erlang:system_info(version)])." -s init stop)
 ERL_INTERFACE_INCLUDE_DIR ?= $(shell erl -noshell -eval "io:format(\"~s\", [code:lib_dir(erl_interface, include)])." -s init stop)
 
-# Fine headers
-FINE_INCLUDE_DIR ?= $(shell elixir -e "IO.write(Fine.include_dir())")
+# Fine headers. elixir_make provides this in normal Mix builds; the local
+# fallback keeps plain `make` working from a checkout.
+FINE_INCLUDE_DIR ?= $(if $(wildcard deps/fine/c_include/fine.hpp),deps/fine/c_include,$(shell elixir -e "IO.write(Fine.include_dir())"))
 
 # OpenZL paths
 OPENZL_DIR = c_src/openzl
@@ -39,6 +40,13 @@ CXXFLAGS += -I$(OPENZL_DIR)/cpp/include
 CXXFLAGS += -I$(OPENZL_BUILD_DIR)/include
 # Private OpenZL sources (needed by SDDL compiler for shared headers like a1cbor.h)
 CXXFLAGS += -I$(OPENZL_DIR)/src
+CFLAGS = -std=c11 -O2 -fPIC -fvisibility=hidden -Wall -Wextra -Wno-unused-parameter
+CFLAGS += -I$(ERTS_INCLUDE_DIR)
+CFLAGS += -I$(FINE_INCLUDE_DIR)
+CFLAGS += -I$(OPENZL_INCLUDE_DIR)
+CFLAGS += -I$(OPENZL_DIR)
+CFLAGS += -I$(OPENZL_BUILD_DIR)/include
+CFLAGS += -I$(OPENZL_DIR)/src
 
 # Platform-specific linker flags
 UNAME_S := $(shell uname -s)
@@ -79,9 +87,18 @@ SDDL_DIR = $(OPENZL_DIR)/tools/sddl/compiler
 SDDL_SRCS = $(filter-out $(SDDL_DIR)/main.cpp, $(wildcard $(SDDL_DIR)/*.cpp))
 SDDL_OBJS = $(patsubst $(SDDL_DIR)/%.cpp, $(OPENZL_BUILD_DIR)/sddl_%.o, $(SDDL_SRCS))
 
-# SDDL profile and shared components libraries (built by CMake)
-SDDL_PROFILE_LIB = $(OPENZL_BUILD_DIR)/custom_parsers/sddl/libsddl_profile.a
-SHARED_COMPONENTS_LIB = $(OPENZL_BUILD_DIR)/custom_parsers/shared_components/libshared_components.a
+# SDDL profile and shared components objects. OpenZL v0.2.0's aggregate
+# custom_parsers CMake target depends on optional xgboost tooling, but the NIF
+# only needs these two small parser libraries.
+SDDL_PROFILE_DIR = $(OPENZL_DIR)/custom_parsers/sddl
+SDDL_PROFILE_C_SRCS = $(wildcard $(SDDL_PROFILE_DIR)/*.c)
+SDDL_PROFILE_CPP_SRCS = $(wildcard $(SDDL_PROFILE_DIR)/*.cpp)
+SDDL_PROFILE_C_OBJS = $(patsubst $(SDDL_PROFILE_DIR)/%.c, $(OPENZL_BUILD_DIR)/sddl_profile_%.o, $(SDDL_PROFILE_C_SRCS))
+SDDL_PROFILE_CPP_OBJS = $(patsubst $(SDDL_PROFILE_DIR)/%.cpp, $(OPENZL_BUILD_DIR)/sddl_profile_%.o, $(SDDL_PROFILE_CPP_SRCS))
+SDDL_PROFILE_OBJS = $(SDDL_PROFILE_C_OBJS) $(SDDL_PROFILE_CPP_OBJS)
+SHARED_COMPONENTS_DIR = $(OPENZL_DIR)/custom_parsers/shared_components
+SHARED_COMPONENTS_CPP_SRCS = $(wildcard $(SHARED_COMPONENTS_DIR)/*.cpp)
+SHARED_COMPONENTS_OBJS = $(patsubst $(SHARED_COMPONENTS_DIR)/%.cpp, $(OPENZL_BUILD_DIR)/shared_components_%.o, $(SHARED_COMPONENTS_CPP_SRCS))
 OPENZL_CPP_LIB = $(OPENZL_BUILD_DIR)/cpp/libopenzl_cpp.a
 
 .PHONY: all clean
@@ -91,7 +108,7 @@ all: $(PRIV_DIR) $(OPENZL_LIB) $(NIF_SO)
 $(PRIV_DIR):
 	mkdir -p $(PRIV_DIR)
 
-# Build OpenZL static library via CMake (with SDDL profile enabled)
+# Build OpenZL static library via CMake.
 $(OPENZL_LIB):
 	cmake -DCMAKE_BUILD_TYPE=Release \
 		-DOPENZL_BUILD_TESTS=OFF \
@@ -99,7 +116,7 @@ $(OPENZL_LIB):
 		-DOPENZL_BUILD_CLI=OFF \
 		-DOPENZL_BUILD_TOOLS=OFF \
 		-DOPENZL_BUILD_EXAMPLES=OFF \
-		-DOPENZL_BUILD_CUSTOM_PARSERS=ON \
+		-DOPENZL_BUILD_CUSTOM_PARSERS=OFF \
 		$(CMAKE_EXTRA_FLAGS) \
 		-S $(OPENZL_DIR) -B $(OPENZL_BUILD_DIR)
 	cmake --build $(OPENZL_BUILD_DIR) -j$(shell nproc 2>/dev/null || sysctl -n hw.ncpu)
@@ -112,9 +129,18 @@ $(NIF_OBJ): $(NIF_SRC) | $(OPENZL_LIB)
 $(OPENZL_BUILD_DIR)/sddl_%.o: $(SDDL_DIR)/%.cpp | $(OPENZL_LIB)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
+$(OPENZL_BUILD_DIR)/sddl_profile_%.o: $(SDDL_PROFILE_DIR)/%.c | $(OPENZL_LIB)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(OPENZL_BUILD_DIR)/sddl_profile_%.o: $(SDDL_PROFILE_DIR)/%.cpp | $(OPENZL_LIB)
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+$(OPENZL_BUILD_DIR)/shared_components_%.o: $(SHARED_COMPONENTS_DIR)/%.cpp | $(OPENZL_LIB)
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
 # Link NIF shared library
-$(NIF_SO): $(NIF_OBJ) $(SDDL_OBJS) $(OPENZL_LIB) | $(PRIV_DIR)
-	$(CXX) $(LDFLAGS) -o $@ $(NIF_OBJ) $(SDDL_OBJS) $(SDDL_PROFILE_LIB) $(SHARED_COMPONENTS_LIB) $(OPENZL_CPP_LIB) $(OPENZL_LIB) $(OPENZL_ZSTD_LIB) $(OPENZL_LZ4_LIB)
+$(NIF_SO): $(NIF_OBJ) $(SDDL_OBJS) $(SDDL_PROFILE_OBJS) $(SHARED_COMPONENTS_OBJS) $(OPENZL_LIB) | $(PRIV_DIR)
+	$(CXX) $(LDFLAGS) -o $@ $(NIF_OBJ) $(SDDL_OBJS) $(SDDL_PROFILE_OBJS) $(SHARED_COMPONENTS_OBJS) $(OPENZL_CPP_LIB) $(OPENZL_LIB) $(OPENZL_ZSTD_LIB) $(OPENZL_LZ4_LIB)
 
 clean:
 	rm -f $(NIF_SO)

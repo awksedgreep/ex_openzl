@@ -4,8 +4,7 @@ defmodule ExOpenzlTest do
   describe "version/0" do
     test "returns a version string" do
       version = ExOpenzl.version()
-      assert is_binary(version)
-      assert version =~ ~r/^\d+\.\d+\.\d+$/
+      assert version == "0.2.0"
     end
   end
 
@@ -339,7 +338,9 @@ defmodule ExOpenzlTest do
 
     test "returns error for empty string data" do
       {:ok, cctx} = ExOpenzl.create_compression_context()
-      assert {:error, _reason} = ExOpenzl.compress_typed(cctx, {:string, <<>>, <<4::native-unsigned-32>>})
+
+      assert {:error, _reason} =
+               ExOpenzl.compress_typed(cctx, {:string, <<>>, <<4::native-unsigned-32>>})
     end
 
     test "returns error for misaligned lengths binary" do
@@ -716,7 +717,7 @@ defmodule ExOpenzlTest do
 
         data =
           for i <- 1..100, into: <<>> do
-            <<(batch * 1000 + i)::little-unsigned-32>>
+            <<batch * 1000 + i::little-unsigned-32>>
           end
 
         assert {:ok, compressed} = ExOpenzl.compress(cctx, data)
