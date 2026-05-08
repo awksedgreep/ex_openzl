@@ -28,7 +28,7 @@ jobs:
 
       - name: Install Erlang & Elixir (Linux)
         if: runner.os == 'Linux'
-        uses: erlef/setup-beam@v2
+        uses: erlef/setup-beam@v1
         with:
           otp-version: "27"
           elixir-version: "1.19"
@@ -76,7 +76,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Install Erlang & Elixir
-        uses: erlef/setup-beam@v2
+        uses: erlef/setup-beam@v1
         with:
           otp-version: "27"
           elixir-version: "1.19"
