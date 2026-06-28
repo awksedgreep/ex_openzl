@@ -91,7 +91,7 @@ Downstream projects should be able to install `ex_openzl 0.4.13` by either:
 
 ## Suggested Fix
 
-Publish a new patch release, likely `0.4.14`, that:
+Publish a new patch release that:
 
 1. regenerates and uploads valid precompiled artifacts for all configured NIF
    versions and targets,
@@ -104,3 +104,8 @@ Docker build because its precompiled artifact is unavailable for the tested
 target and the Hex source fallback is missing `c_src/openzl`. Downstream
 `timeless_stack` needs a fixed `ex_openzl` release before its container CI can
 pass from Hex dependencies alone.
+
+`0.4.14` generated GitHub release artifacts, but Hex publishing failed because
+the package included the entire upstream OpenZL checkout and exceeded Hex
+tarball metadata limits. The follow-up package should include only the source
+paths needed by the NIF fallback build.

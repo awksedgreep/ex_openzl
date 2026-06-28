@@ -1,7 +1,7 @@
 defmodule ExOpenzl.MixProject do
   use Mix.Project
 
-  @version "0.4.14"
+  @version "0.4.15"
   @source_url "https://github.com/awksedgreep/ex_openzl"
 
   def project do
@@ -55,7 +55,34 @@ defmodule ExOpenzl.MixProject do
       links: %{"GitHub" => @source_url},
       files: ~w(
         lib
-        c_src/openzl
+        c_src/openzl/CMakeLists.txt
+        c_src/openzl/build-scripts/cmake
+        c_src/openzl/include
+        c_src/openzl/src
+        c_src/openzl/cpp/CMakeLists.txt
+        c_src/openzl/cpp/include
+        c_src/openzl/cpp/src
+        c_src/openzl/cpp/tests/CMakeLists.txt
+        c_src/openzl/tools/CMakeLists.txt
+        c_src/openzl/tools/arg/CMakeLists.txt
+        c_src/openzl/tools/fileio/CMakeLists.txt
+        c_src/openzl/tools/io/CMakeLists.txt
+        c_src/openzl/tools/logger/CMakeLists.txt
+        c_src/openzl/tools/ml_selector/CMakeLists.txt
+        c_src/openzl/tools/parquet/CMakeLists.txt
+        c_src/openzl/tools/protobuf/CMakeLists.txt
+        c_src/openzl/tools/sddl/CMakeLists.txt
+        c_src/openzl/tools/sddl/compiler
+        c_src/openzl/tools/sddl2/CMakeLists.txt
+        c_src/openzl/tools/streamdump/CMakeLists.txt
+        c_src/openzl/tools/time/CMakeLists.txt
+        c_src/openzl/tools/training/CMakeLists.txt
+        c_src/openzl/custom_parsers/sddl
+        c_src/openzl/custom_parsers/shared_components
+        c_src/openzl/deps/zstd/build/cmake
+        c_src/openzl/deps/zstd/lib
+        c_src/openzl/deps/lz4/build/cmake
+        c_src/openzl/deps/lz4/lib
         c_src/ex_openzl_nif.cpp
         Makefile
         mix.exs
