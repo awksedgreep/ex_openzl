@@ -101,6 +101,12 @@ msg_lengths = <<5::little-32, 5::little-32, 2::little-32>>
 {:ok, [ts_info, lv_info, msg_info]} = ExOpenzl.decompress_multi_typed(dctx, compressed)
 ```
 
+#### Small multi-output frames
+
+Versions before `0.4.8` may return `{:error, "Destination capacity too small..."}`
+from `compress_multi_typed/2` for very small batches split across multiple typed
+outputs. If you see this error with valid inputs, upgrade to `0.4.8` or later.
+
 ### Frame introspection
 
 ```elixir

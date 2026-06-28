@@ -3,6 +3,7 @@
 #include <openzl/codecs/zl_generic.h>
 
 #include <cstring>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
@@ -550,6 +551,25 @@ FINE_NIF(nif_compress_typed_string, ERL_NIF_DIRTY_JOB_CPU_BOUND);
 // We accept fine::Term and manually decode.
 // ---------------------------------------------------------------------------
 
+static std::optional<size_t> multi_typed_compress_bound(size_t total_size,
+                                                        size_t output_count) {
+  const size_t base_bound = ZL_compressBound(total_size);
+  constexpr size_t kFrameOverhead = 256;
+  constexpr size_t kPerOutputOverhead = 128;
+  const size_t max_size = std::numeric_limits<size_t>::max();
+
+  if (output_count > (max_size - kFrameOverhead) / kPerOutputOverhead) {
+    return std::nullopt;
+  }
+
+  const size_t overhead = kFrameOverhead + (output_count * kPerOutputOverhead);
+  if (base_bound > max_size - overhead) {
+    return std::nullopt;
+  }
+
+  return base_bound + overhead;
+}
+
 static std::variant<fine::Ok<std::string>, fine::Error<std::string>>
 nif_compress_multi_typed(ErlNifEnv *env, fine::ResourcePtr<CCtx> cctx,
                          fine::Term list_term) {
@@ -666,7 +686,13 @@ nif_compress_multi_typed(ErlNifEnv *env, fine::ResourcePtr<CCtx> cctx,
     return fine::Error(std::string("input list must not be empty"));
   }
 
-  size_t bound = ZL_compressBound(total_size);
+  std::optional<size_t> maybe_bound =
+      multi_typed_compress_bound(total_size, ref_ptrs.size());
+  if (!maybe_bound.has_value()) {
+    return fine::Error(std::string("compressed output size bound overflow"));
+  }
+
+  size_t bound = *maybe_bound;
   std::string output(bound, '\0');
 
   ZL_Report result = ZL_CCtx_compressMultiTypedRef(

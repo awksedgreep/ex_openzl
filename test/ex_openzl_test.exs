@@ -311,7 +311,7 @@ defmodule ExOpenzlTest do
       # Reconstruct strings from concatenated data and lengths
       {reconstructed, _} =
         Enum.map_reduce(decoded_lengths, info.data, fn len, rest ->
-          <<chunk::binary-size(len), remaining::binary>> = rest
+          <<chunk::binary-size(^len), remaining::binary>> = rest
           {chunk, remaining}
         end)
 
@@ -442,6 +442,46 @@ defmodule ExOpenzlTest do
       assert output.data == data
       assert output.element_width == 4
       assert output.num_elements == 100
+    end
+
+    test "roundtrips small mixed columns with multi-output frame overhead" do
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
+
+      entries = [
+        %{timestamp: 1000, level: :info, message: "hello", metadata: %{}},
+        %{timestamp: 1001, level: :error, message: "boom", metadata: %{"key" => "val"}}
+      ]
+
+      level_to_int = %{info: 1, error: 3}
+
+      {timestamps, levels, messages, message_lengths} =
+        Enum.reduce(entries, {<<>>, <<>>, <<>>, <<>>}, fn entry,
+                                                          {ts_acc, lv_acc, msg_acc, msg_len_acc} ->
+          message = entry.message
+
+          {
+            <<ts_acc::binary, entry.timestamp::little-unsigned-64>>,
+            <<lv_acc::binary, Map.fetch!(level_to_int, entry.level)::unsigned-8>>,
+            <<msg_acc::binary, message::binary>>,
+            <<msg_len_acc::binary, byte_size(message)::little-unsigned-32>>
+          }
+        end)
+
+      metadata = :erlang.term_to_binary(Enum.map(entries, & &1.metadata))
+      metadata_lengths = <<byte_size(metadata)::little-unsigned-32>>
+
+      inputs = [
+        {:numeric, timestamps, 8},
+        {:numeric, levels, 1},
+        {:string, messages, message_lengths},
+        {:string, metadata, metadata_lengths}
+      ]
+
+      assert {:ok, compressed} = ExOpenzl.compress_multi_typed(cctx, inputs)
+      assert {:ok, outputs} = ExOpenzl.decompress_multi_typed(dctx, compressed)
+
+      assert Enum.map(outputs, & &1.data) == [timestamps, levels, messages, metadata]
     end
 
     test "returns error for empty input list" do
