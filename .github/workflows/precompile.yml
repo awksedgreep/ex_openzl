@@ -5,6 +5,10 @@ on:
     tags:
       - "v*"
 
+env:
+  OTP_VERSION: "29"
+  ELIXIR_VERSION: "1.20"
+
 jobs:
   build:
     name: Build ${{ matrix.target }}
@@ -26,21 +30,13 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install Erlang & Elixir (Linux)
-        if: runner.os == 'Linux'
+      - name: Install Erlang & Elixir
         uses: erlef/setup-beam@v1
         env:
           ImageOS: ubuntu24
         with:
-          otp-version: "27"
-          elixir-version: "1.19"
-
-      - name: Install Erlang & Elixir (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew install erlang elixir
-          mix local.hex --force
-          mix local.rebar --force
+          otp-version: ${{ env.OTP_VERSION }}
+          elixir-version: ${{ env.ELIXIR_VERSION }}
 
       - name: Install CMake (Linux)
         if: runner.os == 'Linux'
@@ -80,8 +76,8 @@ jobs:
       - name: Install Erlang & Elixir
         uses: erlef/setup-beam@v1
         with:
-          otp-version: "27"
-          elixir-version: "1.19"
+          otp-version: ${{ env.OTP_VERSION }}
+          elixir-version: ${{ env.ELIXIR_VERSION }}
 
       - name: Fetch dependencies
         run: mix deps.get

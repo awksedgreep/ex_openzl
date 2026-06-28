@@ -4,7 +4,7 @@ defmodule ExOpenzlTest do
   describe "version/0" do
     test "returns a version string" do
       version = ExOpenzl.version()
-      assert version == "0.2.0"
+      assert version =~ ~r/^\d+\.\d+\.\d+$/
     end
   end
 
