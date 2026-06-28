@@ -1,7 +1,7 @@
 defmodule ExOpenzl.MixProject do
   use Mix.Project
 
-  @version "0.4.12"
+  @version "0.4.13"
   @source_url "https://github.com/awksedgreep/ex_openzl"
 
   def project do
@@ -55,7 +55,6 @@ defmodule ExOpenzl.MixProject do
       links: %{"GitHub" => @source_url},
       files: ~w(
         lib
-        c_src/openzl
         c_src/ex_openzl_nif.cpp
         Makefile
         mix.exs
