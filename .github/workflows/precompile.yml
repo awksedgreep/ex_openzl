@@ -5,13 +5,9 @@ on:
     tags:
       - "v*"
 
-env:
-  OTP_VERSION: "29"
-  ELIXIR_VERSION: "1.20"
-
 jobs:
   build:
-    name: Build ${{ matrix.target }}
+    name: Build ${{ matrix.target }} (OTP ${{ matrix.otp }})
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -19,10 +15,40 @@ jobs:
         include:
           - target: x86_64-linux-gnu
             runner: ubuntu-latest
+            otp: "27"
+            elixir: "1.19"
+          - target: x86_64-linux-gnu
+            runner: ubuntu-latest
+            otp: "28"
+            elixir: "1.19"
+          - target: x86_64-linux-gnu
+            runner: ubuntu-latest
+            otp: "29"
+            elixir: "1.20"
           - target: aarch64-linux-gnu
             runner: ubuntu-24.04-arm
+            otp: "27"
+            elixir: "1.19"
+          - target: aarch64-linux-gnu
+            runner: ubuntu-24.04-arm
+            otp: "28"
+            elixir: "1.19"
+          - target: aarch64-linux-gnu
+            runner: ubuntu-24.04-arm
+            otp: "29"
+            elixir: "1.20"
           - target: aarch64-apple-darwin
             runner: macos-14
+            otp: "27"
+            elixir: "1.19"
+          - target: aarch64-apple-darwin
+            runner: macos-14
+            otp: "28"
+            elixir: "1.19"
+          - target: aarch64-apple-darwin
+            runner: macos-14
+            otp: "29"
+            elixir: "1.20"
 
     steps:
       - name: Checkout
@@ -35,8 +61,8 @@ jobs:
         env:
           ImageOS: ubuntu24
         with:
-          otp-version: ${{ env.OTP_VERSION }}
-          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ matrix.otp }}
+          elixir-version: ${{ matrix.elixir }}
 
       - name: Install CMake (Linux)
         if: runner.os == 'Linux'
@@ -58,7 +84,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v5
         with:
-          name: nif-${{ matrix.target }}
+          name: nif-${{ matrix.target }}-otp-${{ matrix.otp }}
           path: cache/*.tar.gz
           if-no-files-found: error
 
@@ -72,12 +98,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          submodules: recursive
 
       - name: Install Erlang & Elixir
         uses: erlef/setup-beam@v1
         with:
-          otp-version: ${{ env.OTP_VERSION }}
-          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: "29"
+          elixir-version: "1.20"
 
       - name: Fetch dependencies
         run: mix deps.get
