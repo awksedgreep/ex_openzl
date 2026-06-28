@@ -1,7 +1,7 @@
 defmodule ExOpenzl.MixProject do
   use Mix.Project
 
-  @version "0.4.9"
+  @version "0.4.10"
   @source_url "https://github.com/awksedgreep/ex_openzl"
 
   def project do
@@ -18,7 +18,7 @@ defmodule ExOpenzl.MixProject do
         "https://github.com/awksedgreep/ex_openzl/releases/download/v#{@version}/@{artefact_filename}",
       make_precompiler_filename: "ex_openzl_nif",
       make_precompiler_priv_paths: ["ex_openzl_nif.*"],
-      make_precompiler_nif_versions: [versions: ["2.16", "2.17"]],
+      make_precompiler_nif_versions: [versions: ["2.16", "2.17", "2.18"]],
       description: description(),
       package: package(),
       docs: docs(),

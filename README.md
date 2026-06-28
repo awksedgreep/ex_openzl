@@ -103,9 +103,9 @@ msg_lengths = <<5::little-32, 5::little-32, 2::little-32>>
 
 #### Small multi-output frames
 
-Versions before `0.4.9` may return `{:error, "Destination capacity too small..."}`
+Versions before `0.4.10` may return `{:error, "Destination capacity too small..."}`
 from `compress_multi_typed/2` for very small batches split across multiple typed
-outputs. If you see this error with valid inputs, upgrade to `0.4.9` or later.
+outputs. If you see this error with valid inputs, upgrade to `0.4.10` or later.
 
 ### Frame introspection
 
