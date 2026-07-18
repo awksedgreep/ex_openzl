@@ -109,3 +109,19 @@ pass from Hex dependencies alone.
 the package included the entire upstream OpenZL checkout and exceeded Hex
 tarball metadata limits. The follow-up package should include only the source
 paths needed by the NIF fallback build.
+
+## Root Cause (confirmed, 2026-07-18)
+
+The invalid archive was caused by duplicate artifact filenames in the
+precompile matrix. The commit "Fix precompile artifacts for OTP 28" added
+OTP 28 builders alongside OTP 27 — but both OTP versions target NIF 2.17,
+so both jobs produced `ex_openzl-nif-2.17-<target>-<version>.tar.gz` with
+different bytes. The release job downloads all artifacts with
+`merge-multiple: true` into one directory, where one 2.17 tarball
+overwrites the other nondeterministically before the GitHub release upload
+and checksum generation read it — allowing the published checksum and the
+uploaded asset to disagree.
+
+Fix (v0.4.16): the matrix builds exactly one job per NIF version per
+target (OTP 27 -> 2.17, OTP 29 -> 2.18). A warning comment in
+precompile.yml guards against reintroducing duplicate-NIF builders.

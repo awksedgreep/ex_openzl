@@ -12,6 +12,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # One build per NIF version per target: OTP 27 -> NIF 2.17 (covers
+        # OTP 26-28 consumers), OTP 29 -> NIF 2.18. Do NOT add builders whose
+        # NIF version duplicates another row's: identical artifact filenames
+        # race in the release job's merged download and can corrupt the
+        # checksum/asset pairing (root cause of the v0.4.13 regression).
         include:
           - target: x86_64-linux-gnu
             runner: ubuntu-latest
@@ -19,10 +24,6 @@ jobs:
             elixir: "1.19"
           - target: x86_64-linux-gnu
             runner: ubuntu-latest
-            otp: "28"
-            elixir: "1.19"
-          - target: x86_64-linux-gnu
-            runner: ubuntu-latest
             otp: "29"
             elixir: "1.20"
           - target: aarch64-linux-gnu
@@ -31,19 +32,11 @@ jobs:
             elixir: "1.19"
           - target: aarch64-linux-gnu
             runner: ubuntu-24.04-arm
-            otp: "28"
-            elixir: "1.19"
-          - target: aarch64-linux-gnu
-            runner: ubuntu-24.04-arm
             otp: "29"
             elixir: "1.20"
           - target: aarch64-apple-darwin
             runner: macos-14
             otp: "27"
-            elixir: "1.19"
-          - target: aarch64-apple-darwin
-            runner: macos-14
-            otp: "28"
             elixir: "1.19"
           - target: aarch64-apple-darwin
             runner: macos-14
@@ -85,7 +78,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: nif-${{ matrix.target }}-otp-${{ matrix.otp }}
-          path: cache/*.tar.gz
+          path: cache/ex_openzl-*.tar.gz
           if-no-files-found: error
 
   release:
