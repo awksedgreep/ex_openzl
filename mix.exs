@@ -1,7 +1,7 @@
 defmodule ExOpenzl.MixProject do
   use Mix.Project
 
-  @version "0.4.16"
+  @version "0.4.17"
   @source_url "https://github.com/awksedgreep/ex_openzl"
 
   def project do
@@ -83,6 +83,8 @@ defmodule ExOpenzl.MixProject do
         c_src/openzl/deps/zstd/lib
         c_src/openzl/deps/lz4/build/cmake
         c_src/openzl/deps/lz4/lib
+        c_src/openzl/deps/lz4/README.md
+        c_src/openzl/deps/lz4/LICENSE
         c_src/ex_openzl_nif.cpp
         Makefile
         mix.exs
