@@ -1,7 +1,7 @@
 defmodule ExOpenzl.MixProject do
   use Mix.Project
 
-  @version "0.4.17"
+  @version "0.4.18"
   @source_url "https://github.com/awksedgreep/ex_openzl"
 
   def project do
