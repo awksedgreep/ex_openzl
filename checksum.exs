@@ -1,10 +1,10 @@
 %{
-  "ex_openzl-nif-2.17-aarch64-apple-darwin-0.4.17.tar.gz" => "sha256:0ec36fc7d2036ee09589ebc49d1f73ca21a263b54b4ce9bf89a9ca319166e9ac",
-  "ex_openzl-nif-2.17-aarch64-linux-gnu-0.4.17.tar.gz" => "sha256:d3ba5f93ab28a33aa7cb3da78b96a43b64a3e65d2902ee24ad9b09c5ddffb309",
-  "ex_openzl-nif-2.17-x86_64-apple-darwin-0.4.17.tar.gz" => "sha256:f1d1a3f4072cb2f533d12783ac044f75395a86417567d61bad2b121478bff71c",
-  "ex_openzl-nif-2.17-x86_64-linux-gnu-0.4.17.tar.gz" => "sha256:f5b5a2875f3b94259decc711b7ba8425f1511fe271b3138a6ba6fc88b359c192",
-  "ex_openzl-nif-2.18-aarch64-apple-darwin-0.4.17.tar.gz" => "sha256:a9ab6ff2c7e71b7cc32d6b2c4577719788d33a8e92b44b9cd987a44bd402ec3e",
-  "ex_openzl-nif-2.18-aarch64-linux-gnu-0.4.17.tar.gz" => "sha256:6665411a109f3ebc52ec3eced863a6364285080eca60729c8a4f551292007880",
-  "ex_openzl-nif-2.18-x86_64-apple-darwin-0.4.17.tar.gz" => "sha256:403c9294f22858257803bfa911da8c7b5759e81dd2dcbdb3651cddab335d2a86",
-  "ex_openzl-nif-2.18-x86_64-linux-gnu-0.4.17.tar.gz" => "sha256:19c75bd78ca3571df98b19e6042ce15593bc7cd86317b0b8f5a42244619a2bc4",
+  "ex_openzl-nif-2.17-aarch64-apple-darwin-0.4.18.tar.gz" => "sha256:d823e8740c72424f8cb46e5836ccfdf87f969060d94de0f0dff087f70c02c538",
+  "ex_openzl-nif-2.17-aarch64-linux-gnu-0.4.18.tar.gz" => "sha256:38b6ed13f1f350a4912bef93690df1f45aed1c8c392dc149a42130d631960d25",
+  "ex_openzl-nif-2.17-x86_64-apple-darwin-0.4.18.tar.gz" => "sha256:2661e9115a4c230e5ed16953534075b7fe2aaa60cafe18eae9a64d5c15935418",
+  "ex_openzl-nif-2.17-x86_64-linux-gnu-0.4.18.tar.gz" => "sha256:101bd12e4862c134c2077aef4f02f9c4aa31602ff53d9e33f4e0e4cd9dc113c4",
+  "ex_openzl-nif-2.18-aarch64-apple-darwin-0.4.18.tar.gz" => "sha256:15f1d5bcf2bded21ee5e304c1aeae85dfaf19726b426ca746546e776c4532122",
+  "ex_openzl-nif-2.18-aarch64-linux-gnu-0.4.18.tar.gz" => "sha256:ac089d5acbbf7b6da8c75eb7fd34bd3667e717796b07b27fffb5c95776bf9d5d",
+  "ex_openzl-nif-2.18-x86_64-apple-darwin-0.4.18.tar.gz" => "sha256:719c302f7f00f849a72ab7a9db986069d5fece6f781a20112f8af6be9128e267",
+  "ex_openzl-nif-2.18-x86_64-linux-gnu-0.4.18.tar.gz" => "sha256:25f6a0d2f3affbc599c4c8e20efaeccac0836e335b73e54f650f661cba71440e",
 }
