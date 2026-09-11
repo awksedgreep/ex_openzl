@@ -12,7 +12,12 @@ defmodule ExOpenzl.NIF do
   def nif_compress(_data), do: :erlang.nif_error(:not_loaded)
   def nif_compress_with_context(_ctx, _data), do: :erlang.nif_error(:not_loaded)
   def nif_decompress(_data), do: :erlang.nif_error(:not_loaded)
+  def nif_decompress_with_limit(_data, _max_output_size), do: :erlang.nif_error(:not_loaded)
   def nif_decompress_with_context(_ctx, _data), do: :erlang.nif_error(:not_loaded)
+
+  def nif_decompress_with_context_and_limit(_ctx, _data, _max_output_size),
+    do: :erlang.nif_error(:not_loaded)
+
   def nif_create_compression_context, do: :erlang.nif_error(:not_loaded)
   def nif_create_decompression_context, do: :erlang.nif_error(:not_loaded)
   def nif_compress_bound(_src_size), do: :erlang.nif_error(:not_loaded)

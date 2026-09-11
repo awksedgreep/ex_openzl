@@ -61,6 +61,16 @@ data = "hello world, this is a test of OpenZL compression"
 {:ok, ^data} = ExOpenzl.decompress(compressed)
 ```
 
+One-shot compression creates a fresh native context. For repeated operations,
+reuse the per-process contexts shown below to amortize native setup cost.
+
+Decompression rejects frames that declare more than 256 MiB of output before
+allocating that output. Trusted larger frames can use an explicit byte limit:
+
+```elixir
+{:ok, decompressed} = ExOpenzl.decompress(compressed, 1024 * 1024 * 1024)
+```
+
 ### Reusable contexts
 
 ```elixir
@@ -86,7 +96,7 @@ timestamps = <<1000::little-64, 1001::little-64, 1002::little-64>>
 # Levels: u8 enum values (entropy coding)
 levels = <<0, 1, 1>>
 
-# Messages: concatenated strings + packed u32 lengths
+# Messages: concatenated strings + packed little-endian u32 lengths
 messages = "helloworld!!"
 msg_lengths = <<5::little-32, 5::little-32, 2::little-32>>
 

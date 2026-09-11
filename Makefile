@@ -28,7 +28,11 @@ OPENZL_INCLUDE_DIR = $(OPENZL_DIR)/include
 # Compiler settings
 CC ?= cc
 CXX ?= c++
-CXXFLAGS = -std=c++17 -O2 -fPIC -fvisibility=hidden -Wall -Wextra -Wno-unused-parameter
+OPTFLAGS ?= -O3
+# LTO is opt-in: `make LTOFLAGS=-flto`. It regressed the representative SDDL
+# workload with GCC 16, and not every cross-linker used for precompiles supports it.
+LTOFLAGS ?=
+CXXFLAGS = -std=c++17 $(OPTFLAGS) $(LTOFLAGS) -fPIC -fvisibility=hidden -Wall -Wextra -Wno-unused-parameter
 CXXFLAGS += -I$(ERTS_INCLUDE_DIR)
 CXXFLAGS += -I$(FINE_INCLUDE_DIR)
 CXXFLAGS += -I$(OPENZL_INCLUDE_DIR)
@@ -40,7 +44,7 @@ CXXFLAGS += -I$(OPENZL_DIR)/cpp/include
 CXXFLAGS += -I$(OPENZL_BUILD_DIR)/include
 # Private OpenZL sources (needed by SDDL compiler for shared headers like a1cbor.h)
 CXXFLAGS += -I$(OPENZL_DIR)/src
-CFLAGS = -std=c11 -O2 -fPIC -fvisibility=hidden -Wall -Wextra -Wno-unused-parameter
+CFLAGS = -std=c11 $(OPTFLAGS) $(LTOFLAGS) -fPIC -fvisibility=hidden -Wall -Wextra -Wno-unused-parameter
 CFLAGS += -I$(ERTS_INCLUDE_DIR)
 CFLAGS += -I$(FINE_INCLUDE_DIR)
 CFLAGS += -I$(OPENZL_INCLUDE_DIR)
@@ -55,6 +59,7 @@ ifeq ($(UNAME_S),Darwin)
 else
 	LDFLAGS = -shared
 endif
+LDFLAGS += $(LTOFLAGS)
 
 # CMake flags for compiler passthrough
 # cc_precompiler may set CC="gcc -arch arm64" which breaks CMake's
@@ -123,20 +128,20 @@ $(OPENZL_LIB):
 	cmake --build $(OPENZL_BUILD_DIR) -j$(shell nproc 2>/dev/null || sysctl -n hw.ncpu)
 
 # Compile NIF source
-$(NIF_OBJ): $(NIF_SRC) | $(OPENZL_LIB)
+$(NIF_OBJ): $(NIF_SRC) Makefile | $(OPENZL_LIB)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 # Compile SDDL compiler sources
-$(OPENZL_BUILD_DIR)/sddl_%.o: $(SDDL_DIR)/%.cpp | $(OPENZL_LIB)
+$(OPENZL_BUILD_DIR)/sddl_%.o: $(SDDL_DIR)/%.cpp Makefile | $(OPENZL_LIB)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-$(OPENZL_BUILD_DIR)/sddl_profile_%.o: $(SDDL_PROFILE_DIR)/%.c | $(OPENZL_LIB)
+$(OPENZL_BUILD_DIR)/sddl_profile_%.o: $(SDDL_PROFILE_DIR)/%.c Makefile | $(OPENZL_LIB)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-$(OPENZL_BUILD_DIR)/sddl_profile_%.o: $(SDDL_PROFILE_DIR)/%.cpp | $(OPENZL_LIB)
+$(OPENZL_BUILD_DIR)/sddl_profile_%.o: $(SDDL_PROFILE_DIR)/%.cpp Makefile | $(OPENZL_LIB)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-$(OPENZL_BUILD_DIR)/shared_components_%.o: $(SHARED_COMPONENTS_DIR)/%.cpp | $(OPENZL_LIB)
+$(OPENZL_BUILD_DIR)/shared_components_%.o: $(SHARED_COMPONENTS_DIR)/%.cpp Makefile | $(OPENZL_LIB)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 # Link NIF shared library

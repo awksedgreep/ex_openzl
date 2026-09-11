@@ -63,7 +63,7 @@ struct_data =
 
 strings = for i <- 1..200, do: "log message number #{i} with some payload data"
 string_concat = Enum.join(strings)
-string_lengths = for s <- strings, into: <<>>, do: <<byte_size(s)::native-unsigned-32>>
+string_lengths = for s <- strings, into: <<>>, do: <<byte_size(s)::little-unsigned-32>>
 
 sddl_source = "Row = {\nUInt64LE\nUInt8\n}\n: Row[_rem / 9]\n"
 sddl_records =
@@ -163,14 +163,14 @@ end)
 IO.puts("")
 IO.puts("── SDDL Pipeline ──")
 Bench.run("sddl compile", fn -> ExOpenzl.sddl_compile(sddl_source) end, 500)
+{:ok, sddl_bench_cctx} = ExOpenzl.create_compression_context()
+:ok = ExOpenzl.set_compressor(sddl_bench_cctx, compressor)
+{:ok, sddl_bench_dctx} = ExOpenzl.create_decompression_context()
 Bench.run("sddl compress 1K records (#{byte_size(sddl_records)} B)", fn ->
-  {:ok, c} = ExOpenzl.create_compression_context()
-  :ok = ExOpenzl.set_compressor(c, compressor)
-  ExOpenzl.compress(c, sddl_records)
+  ExOpenzl.compress(sddl_bench_cctx, sddl_records)
 end, 500)
 Bench.run("sddl decompress 1K records", fn ->
-  {:ok, d} = ExOpenzl.create_decompression_context()
-  ExOpenzl.decompress(d, sddl_compressed)
+  ExOpenzl.decompress(sddl_bench_dctx, sddl_compressed)
 end, 500)
 
 IO.puts("")

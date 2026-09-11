@@ -34,6 +34,16 @@ defmodule ExOpenzlTest do
     test "returns error for invalid compressed data" do
       assert {:error, _reason} = ExOpenzl.decompress("not valid compressed data")
     end
+
+    test "enforces an explicit decompressed-size limit before allocation" do
+      original = "bounded decompression"
+      assert {:ok, compressed} = ExOpenzl.compress(original)
+
+      assert {:error, "decompressed size exceeds configured maximum"} =
+               ExOpenzl.decompress(compressed, byte_size(original) - 1)
+
+      assert {:ok, ^original} = ExOpenzl.decompress(compressed, byte_size(original))
+    end
   end
 
   describe "context-based compression" do
@@ -59,6 +69,16 @@ defmodule ExOpenzlTest do
         assert {:ok, ^original} = ExOpenzl.decompress(dctx, compressed)
       end
     end
+
+    test "context decompression enforces an explicit output-size limit" do
+      {:ok, compressed} = ExOpenzl.compress("context limit")
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
+
+      assert {:error, "decompressed size exceeds configured maximum"} =
+               ExOpenzl.decompress(dctx, compressed, 12)
+
+      assert {:ok, "context limit"} = ExOpenzl.decompress(dctx, compressed, 13)
+    end
   end
 
   describe "compress_bound/1" do
@@ -72,6 +92,10 @@ defmodule ExOpenzlTest do
       bound = ExOpenzl.compress_bound(0)
       assert is_integer(bound)
       assert bound >= 0
+    end
+
+    test "rejects a size whose bound would overflow" do
+      assert {:error, _reason} = ExOpenzl.compress_bound(0xFFFFFFFFFFFFFFFF)
     end
   end
 
@@ -89,6 +113,11 @@ defmodule ExOpenzlTest do
       original = String.duplicate("Compression level test data. ", 500)
       assert {:ok, compressed} = ExOpenzl.compress(cctx, original)
       assert {:ok, ^original} = ExOpenzl.decompress(dctx, compressed)
+    end
+
+    test "native setter returns a plain ok atom" do
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      assert :ok = ExOpenzl.NIF.nif_set_compression_level(cctx, 3)
     end
 
     test "higher levels produce smaller output" do
@@ -275,7 +304,7 @@ defmodule ExOpenzlTest do
 
       lengths_bin =
         for s <- strings, into: <<>> do
-          <<String.length(s)::native-unsigned-32>>
+          <<String.length(s)::little-unsigned-32>>
         end
 
       assert {:ok, compressed} = ExOpenzl.compress_typed(cctx, {:string, concat, lengths_bin})
@@ -296,7 +325,7 @@ defmodule ExOpenzlTest do
 
       lengths_bin =
         for len <- expected_lengths, into: <<>> do
-          <<len::native-unsigned-32>>
+          <<len::little-unsigned-32>>
         end
 
       assert {:ok, compressed} = ExOpenzl.compress_typed(cctx, {:string, concat, lengths_bin})
@@ -304,7 +333,7 @@ defmodule ExOpenzlTest do
 
       # Verify we can reconstruct the original strings from data + lengths
       decoded_lengths =
-        for <<len::native-unsigned-32 <- info.string_lengths>>, do: len
+        for <<len::little-unsigned-32 <- info.string_lengths>>, do: len
 
       assert decoded_lengths == expected_lengths
 
@@ -327,7 +356,7 @@ defmodule ExOpenzlTest do
 
       lengths_bin =
         for s <- strings, into: <<>> do
-          <<byte_size(s)::native-unsigned-32>>
+          <<byte_size(s)::little-unsigned-32>>
         end
 
       assert {:ok, compressed} = ExOpenzl.compress_typed(cctx, {:string, concat, lengths_bin})
@@ -340,13 +369,27 @@ defmodule ExOpenzlTest do
       {:ok, cctx} = ExOpenzl.create_compression_context()
 
       assert {:error, _reason} =
-               ExOpenzl.compress_typed(cctx, {:string, <<>>, <<4::native-unsigned-32>>})
+               ExOpenzl.compress_typed(cctx, {:string, <<>>, <<4::little-unsigned-32>>})
     end
 
     test "returns error for misaligned lengths binary" do
       {:ok, cctx} = ExOpenzl.create_compression_context()
       # 3 bytes is not a multiple of 4
       assert {:error, _reason} = ExOpenzl.compress_typed(cctx, {:string, "hello", <<1, 2, 3>>})
+    end
+
+    test "accepts an unaligned sub-binary of little-endian lengths" do
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
+      strings = ["a", "bc", "def"]
+      data = Enum.join(strings)
+      padded_lengths = <<0, 1::little-unsigned-32, 2::little-unsigned-32, 3::little-unsigned-32>>
+      <<_padding, lengths::binary>> = padded_lengths
+
+      assert {:ok, compressed} = ExOpenzl.compress_typed(cctx, {:string, data, lengths})
+
+      assert {:ok, %{data: ^data, string_lengths: ^lengths}} =
+               ExOpenzl.decompress_typed(dctx, compressed)
     end
   end
 
@@ -404,7 +447,7 @@ defmodule ExOpenzlTest do
 
       lengths_bin =
         for s <- strings, into: <<>> do
-          <<byte_size(s)::native-unsigned-32>>
+          <<byte_size(s)::little-unsigned-32>>
         end
 
       inputs = [
@@ -494,6 +537,46 @@ defmodule ExOpenzlTest do
       data = <<1, 2, 3, 4, 5, 6, 7, 8>>
       # Invalid type atom
       assert {:error, _reason} = ExOpenzl.compress_multi_typed(cctx, [{:invalid_type, data, 1}])
+    end
+
+    test "handles empty typed outputs without a zero-byte memcpy" do
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
+
+      assert {:ok, compressed} =
+               ExOpenzl.compress_multi_typed(cctx, [
+                 {:numeric, <<>>, 1},
+                 {:numeric, <<1, 2, 3>>, 1}
+               ])
+
+      assert {:ok, [empty, populated]} =
+               ExOpenzl.decompress_multi_typed(dctx, compressed)
+
+      assert empty.data == <<>>
+      assert empty.num_elements == 0
+      assert populated.data == <<1, 2, 3>>
+    end
+
+    test "rejects long unknown atoms without decoding atom names" do
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+
+      assert {:error, "type must be :numeric, :struct, or :string"} =
+               ExOpenzl.compress_multi_typed(cctx, [
+                 {:this_atom_is_longer_than_sixteen_characters, <<1>>, 1}
+               ])
+    end
+
+    test "accepts unaligned string lengths in the multi-typed path" do
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      {:ok, dctx} = ExOpenzl.create_decompression_context()
+      padded_lengths = <<255, 2::little-unsigned-32, 3::little-unsigned-32>>
+      <<_padding, lengths::binary>> = padded_lengths
+
+      assert {:ok, compressed} =
+               ExOpenzl.compress_multi_typed(cctx, [{:string, "abcde", lengths}])
+
+      assert {:ok, [%{data: "abcde", string_lengths: ^lengths}]} =
+               ExOpenzl.decompress_multi_typed(dctx, compressed)
     end
   end
 
@@ -704,6 +787,8 @@ defmodule ExOpenzlTest do
       {:ok, cctx} = ExOpenzl.create_compression_context()
       {:ok, dctx} = ExOpenzl.create_decompression_context()
 
+      # Materialize the lazy default typed compressor before replacing it.
+      assert {:ok, _typed_frame} = ExOpenzl.compress_typed(cctx, {:numeric, <<1, 2, 3>>, 1})
       assert :ok = ExOpenzl.set_compressor(cctx, compressor)
 
       # Build data matching the SDDL description: 9 bytes per record (8 + 1)

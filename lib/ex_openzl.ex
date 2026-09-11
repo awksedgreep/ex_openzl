@@ -16,6 +16,8 @@ defmodule ExOpenzl do
 
   alias ExOpenzl.NIF
 
+  @default_max_decompressed_size 256 * 1024 * 1024
+
   @doc """
   Returns the OpenZL library version string.
   """
@@ -44,18 +46,49 @@ defmodule ExOpenzl do
   @doc """
   Decompresses an OpenZL-compressed binary.
 
+  The declared decompressed size is limited to 256 MiB by default. Use
+  `decompress/2` to choose a different limit for trusted larger frames.
+
   Returns `{:ok, decompressed}` on success or `{:error, reason}` on failure.
   """
   @spec decompress(binary()) :: {:ok, binary()} | {:error, String.t()}
   def decompress(data) when is_binary(data), do: NIF.nif_decompress(data)
 
   @doc """
-  Decompresses using a reusable decompression context.
+  Decompresses with either an explicit output-size limit or a reusable context.
+
+  `decompress(data, max_output_size)` rejects the frame before allocating its
+  output when the declared size exceeds the limit. `decompress(ctx, data)`
+  uses the default 256 MiB limit while reusing the supplied context.
   """
+  @spec decompress(binary(), non_neg_integer()) ::
+          {:ok, binary()} | {:error, String.t()}
+  def decompress(data, max_output_size)
+      when is_binary(data) and is_integer(max_output_size) and max_output_size >= 0 do
+    NIF.nif_decompress_with_limit(data, max_output_size)
+  end
+
   @spec decompress(reference(), binary()) :: {:ok, binary()} | {:error, String.t()}
   def decompress(ctx, data) when is_reference(ctx) and is_binary(data) do
     NIF.nif_decompress_with_context(ctx, data)
   end
+
+  @doc """
+  Decompresses with a reusable context and an explicit output-size limit.
+  """
+  @spec decompress(reference(), binary(), non_neg_integer()) ::
+          {:ok, binary()} | {:error, String.t()}
+  def decompress(ctx, data, max_output_size)
+      when is_reference(ctx) and is_binary(data) and is_integer(max_output_size) and
+             max_output_size >= 0 do
+    NIF.nif_decompress_with_context_and_limit(ctx, data, max_output_size)
+  end
+
+  @doc """
+  Returns the default maximum decompressed output size in bytes.
+  """
+  @spec default_max_decompressed_size() :: pos_integer()
+  def default_max_decompressed_size, do: @default_max_decompressed_size
 
   @doc """
   Creates a reusable compression context.
@@ -83,8 +116,11 @@ defmodule ExOpenzl do
   Returns the upper bound on compressed output size for a given input size.
 
   Useful for pre-allocating buffers.
+
+  Returns `{:error, reason}` if the requested size cannot be represented safely
+  on the current platform.
   """
-  @spec compress_bound(non_neg_integer()) :: non_neg_integer()
+  @spec compress_bound(non_neg_integer()) :: non_neg_integer() | {:error, String.t()}
   def compress_bound(src_size) when is_integer(src_size) and src_size >= 0 do
     NIF.nif_compress_bound(src_size)
   end
@@ -101,10 +137,7 @@ defmodule ExOpenzl do
   """
   @spec set_compression_level(reference(), integer()) :: :ok | {:error, String.t()}
   def set_compression_level(ctx, level) when is_reference(ctx) and is_integer(level) do
-    case NIF.nif_set_compression_level(ctx, level) do
-      {:ok, :ok} -> :ok
-      {:error, _} = err -> err
-    end
+    NIF.nif_set_compression_level(ctx, level)
   end
 
   # ===========================================================================
@@ -117,7 +150,7 @@ defmodule ExOpenzl do
   Accepts tagged tuples:
   - `{:numeric, data, element_width}` — width must be 1, 2, 4, or 8
   - `{:struct, data, struct_width}` — fixed-width records
-  - `{:string, data, lengths_bin}` — variable-length strings with packed uint32 lengths
+  - `{:string, data, lengths_bin}` — variable-length strings with packed little-endian uint32 lengths
   """
   @spec compress_typed(reference(), tuple()) :: {:ok, binary()} | {:error, String.t()}
   def compress_typed(ctx, {:numeric, data, element_width})
@@ -207,9 +240,6 @@ defmodule ExOpenzl do
   """
   @spec set_compressor(reference(), reference()) :: :ok | {:error, String.t()}
   def set_compressor(ctx, compressor) when is_reference(ctx) and is_reference(compressor) do
-    case NIF.nif_set_compressor(ctx, compressor) do
-      {:ok, :ok} -> :ok
-      {:error, _} = err -> err
-    end
+    NIF.nif_set_compressor(ctx, compressor)
   end
 end
