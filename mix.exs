@@ -65,7 +65,7 @@ defmodule ExOpenzl.MixProject do
         c_src/openzl/cpp/tests/CMakeLists.txt
         c_src/openzl/tools/CMakeLists.txt
         c_src/openzl/tools/arg/CMakeLists.txt
-        c_src/openzl/tools/fileio/CMakeLists.txt
+        c_src/openzl/tools/fileio
         c_src/openzl/tools/io/CMakeLists.txt
         c_src/openzl/tools/logger/CMakeLists.txt
         c_src/openzl/tools/ml_selector/CMakeLists.txt
