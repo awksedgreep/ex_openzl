@@ -36,11 +36,19 @@ jobs:
             otp: "29"
             elixir: "1.20"
           - target: aarch64-apple-darwin
-            runner: macos-14
+            runner: macos-15
             otp: "27"
             elixir: "1.19"
           - target: aarch64-apple-darwin
-            runner: macos-14
+            runner: macos-15
+            otp: "29"
+            elixir: "1.20"
+          - target: x86_64-apple-darwin
+            runner: macos-15-intel
+            otp: "27"
+            elixir: "1.19"
+          - target: x86_64-apple-darwin
+            runner: macos-15-intel
             otp: "29"
             elixir: "1.20"
 
@@ -62,9 +70,9 @@ jobs:
         if: runner.os == 'Linux'
         run: cmake --version
 
-      - name: Install CMake (macOS)
+      - name: Verify CMake (macOS)
         if: runner.os == 'macOS'
-        run: brew install cmake
+        run: cmake --version
 
       - name: Fetch dependencies
         run: mix deps.get
