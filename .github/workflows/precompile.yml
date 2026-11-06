@@ -43,14 +43,6 @@ jobs:
             runner: macos-15
             otp: "29"
             elixir: "1.20"
-          - target: x86_64-apple-darwin
-            runner: macos-15-intel
-            otp: "27"
-            elixir: "1.19"
-          - target: x86_64-apple-darwin
-            runner: macos-15-intel
-            otp: "29"
-            elixir: "1.20"
 
     steps:
       - name: Checkout

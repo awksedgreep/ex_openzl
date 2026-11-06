@@ -46,7 +46,6 @@ Precompiled NIF binaries are available for the following targets:
 
 - `x86_64-linux-gnu`
 - `aarch64-linux-gnu`
-- `x86_64-apple-darwin`
 - `aarch64-apple-darwin`
 
 If a precompiled binary is available for your platform, `mix compile` will download it automatically — no C++ toolchain required.
