@@ -20,11 +20,11 @@ jobs:
         # checksum/asset pairing (root cause of the v0.4.13 regression).
         include:
           - target: x86_64-linux-gnu
-            runner: ubuntu-latest
+            runner: ubuntu-24.04
             otp: "27"
             elixir: "1.19"
           - target: x86_64-linux-gnu
-            runner: ubuntu-latest
+            runner: ubuntu-24.04
             otp: "29"
             elixir: "1.20"
           - target: aarch64-linux-gnu
@@ -58,9 +58,9 @@ jobs:
           otp-version: ${{ matrix.otp }}
           elixir-version: ${{ matrix.elixir }}
 
-      - name: Install CMake (Linux)
+      - name: Verify CMake (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y cmake
+        run: cmake --version
 
       - name: Install CMake (macOS)
         if: runner.os == 'macOS'
