@@ -1,6 +1,7 @@
 #include <fine.hpp>
 #include <openzl/openzl.h>
 #include <openzl/codecs/zl_generic.h>
+#include <openzl/codecs/zl_lz.h>
 
 #include <cstring>
 #include <limits>
@@ -549,6 +550,27 @@ nif_set_compression_level(ErlNifEnv *env, fine::ResourcePtr<CCtx> cctx,
 }
 
 FINE_NIF(nif_set_compression_level, 0);
+
+// Keep older OpenZL decoders usable when the caller explicitly requests
+// their frame format. The value is sticky on reusable contexts.
+static std::variant<fine::Ok<>, fine::Error<std::string>>
+nif_set_format_version(ErlNifEnv *env, fine::ResourcePtr<CCtx> cctx,
+                       int64_t version) {
+  if (version < ZL_MIN_FORMAT_VERSION || version > ZL_MAX_FORMAT_VERSION) {
+    return fine::Error(std::string("unsupported OpenZL format version"));
+  }
+
+  ZL_Report result = ZL_CCtx_setParameter(
+      cctx->ctx, ZL_CParam_formatVersion, static_cast<int>(version));
+  if (ZL_isError(result)) {
+    const char *err = ZL_CCtx_getErrorContextString(cctx->ctx, result);
+    return fine::Error(err ? std::string(err)
+                           : std::string("failed to set format version"));
+  }
+  return fine::Ok();
+}
+
+FINE_NIF(nif_set_format_version, 0);
 
 // ===================================================================
 // Phase 2: Typed Compression
@@ -1255,6 +1277,27 @@ nif_create_sddl_compressor(ErlNifEnv *env, std::string_view compiled) {
 }
 
 FINE_NIF(nif_create_sddl_compressor, ERL_NIF_DIRTY_JOB_CPU_BOUND);
+
+// Select the native LZ graph introduced in OpenZL 0.2.0 and improved in 0.3.0.
+static std::variant<fine::Ok<fine::ResourcePtr<Compressor>>,
+                    fine::Error<std::string>>
+nif_create_lz_compressor(ErlNifEnv *env) {
+  auto comp = fine::make_resource<Compressor>();
+  if (!comp->compressor) {
+    return fine::Error(std::string("failed to create compressor"));
+  }
+
+  ZL_Report result = ZL_Compressor_selectStartingGraphID(
+      comp->compressor, ZL_GRAPH_LZ);
+  if (ZL_isError(result)) {
+    const char *err = ZL_Compressor_getErrorContextString(comp->compressor, result);
+    return fine::Error(err ? std::string(err)
+                           : std::string("failed to select LZ graph"));
+  }
+  return fine::Ok(std::move(comp));
+}
+
+FINE_NIF(nif_create_lz_compressor, 0);
 
 // ---------------------------------------------------------------------------
 // NIF: set_compressor/2

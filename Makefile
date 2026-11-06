@@ -92,7 +92,7 @@ SDDL_DIR = $(OPENZL_DIR)/tools/sddl/compiler
 SDDL_SRCS = $(filter-out $(SDDL_DIR)/main.cpp, $(wildcard $(SDDL_DIR)/*.cpp))
 SDDL_OBJS = $(patsubst $(SDDL_DIR)/%.cpp, $(OPENZL_BUILD_DIR)/sddl_%.o, $(SDDL_SRCS))
 
-# SDDL profile and shared components objects. OpenZL v0.2.0's aggregate
+# SDDL profile and shared components objects. OpenZL's aggregate
 # custom_parsers CMake target depends on optional xgboost tooling, but the NIF
 # only needs these two small parser libraries.
 SDDL_PROFILE_DIR = $(OPENZL_DIR)/custom_parsers/sddl

@@ -3,8 +3,7 @@ defmodule ExOpenzlTest do
 
   describe "version/0" do
     test "returns a version string" do
-      version = ExOpenzl.version()
-      assert version =~ ~r/^\d+\.\d+\.\d+$/
+      assert ExOpenzl.version() == "0.3.0"
     end
   end
 
@@ -143,6 +142,44 @@ defmodule ExOpenzlTest do
         assert :ok = ExOpenzl.set_compression_level(cctx, level)
         assert {:ok, compressed} = ExOpenzl.compress(cctx, original)
         assert {:ok, ^original} = ExOpenzl.decompress(dctx, compressed)
+      end
+    end
+  end
+
+  describe "set_format_version/2" do
+    test "writes version 24 frames for OpenZL 0.2.0 readers" do
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      assert :ok = ExOpenzl.set_format_version(cctx, 24)
+
+      data = String.duplicate("versioned frame ", 100)
+
+      for _ <- 1..2 do
+        assert {:ok, compressed} = ExOpenzl.compress(cctx, data)
+        assert {:ok, %{format_version: 24}} = ExOpenzl.frame_info(compressed)
+        assert {:ok, ^data} = ExOpenzl.decompress(compressed)
+      end
+    end
+
+    test "rejects unsupported versions and preserves the default" do
+      {:ok, cctx} = ExOpenzl.create_compression_context()
+      assert {:error, _} = ExOpenzl.set_format_version(cctx, 28)
+      assert {:error, _} = ExOpenzl.set_format_version(cctx, -1)
+      assert {:ok, compressed} = ExOpenzl.compress(cctx, "default version")
+      assert {:ok, %{format_version: 27}} = ExOpenzl.frame_info(compressed)
+    end
+  end
+
+  describe "native LZ compressor" do
+    test "compresses and decompresses at supported LZ levels" do
+      assert {:ok, compressor} = ExOpenzl.create_lz_compressor()
+      data = String.duplicate("the quick brown fox jumps over the lazy dog ", 1000)
+
+      for level <- [1, 7] do
+        {:ok, cctx} = ExOpenzl.create_compression_context()
+        assert :ok = ExOpenzl.set_compression_level(cctx, level)
+        assert :ok = ExOpenzl.set_compressor(cctx, compressor)
+        assert {:ok, compressed} = ExOpenzl.compress(cctx, data)
+        assert {:ok, ^data} = ExOpenzl.decompress(compressed)
       end
     end
   end

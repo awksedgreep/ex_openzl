@@ -1,7 +1,7 @@
 defmodule ExOpenzl.MixProject do
   use Mix.Project
 
-  @version "0.4.18"
+  @version "0.5.0"
   @source_url "https://github.com/awksedgreep/ex_openzl"
 
   def project do
@@ -77,8 +77,11 @@ defmodule ExOpenzl.MixProject do
         c_src/openzl/tools/streamdump/CMakeLists.txt
         c_src/openzl/tools/time/CMakeLists.txt
         c_src/openzl/tools/training/CMakeLists.txt
+        c_src/openzl/tools/wasm/CMakeLists.txt
         c_src/openzl/custom_parsers/sddl
         c_src/openzl/custom_parsers/shared_components
+        c_src/openzl/cli/utils/profile_graphs.cpp
+        c_src/openzl/cli/utils/profile_graphs.h
         c_src/openzl/deps/zstd/build/cmake
         c_src/openzl/deps/zstd/lib
         c_src/openzl/deps/lz4/build/cmake
@@ -90,6 +93,7 @@ defmodule ExOpenzl.MixProject do
         mix.exs
         checksum.exs
         README.md
+        CHANGELOG.md
         LICENSE
         .formatter.exs
       )
@@ -99,7 +103,7 @@ defmodule ExOpenzl.MixProject do
   defp docs do
     [
       main: "readme",
-      extras: ["README.md", "LICENSE"],
+      extras: ["README.md", "CHANGELOG.md", "LICENSE"],
       source_ref: "v#{@version}"
     ]
   end

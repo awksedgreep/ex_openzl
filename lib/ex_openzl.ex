@@ -140,6 +140,18 @@ defmodule ExOpenzl do
     NIF.nif_set_compression_level(ctx, level)
   end
 
+  @doc """
+  Sets the frame format version on a reusable compression context.
+
+  OpenZL 0.3.0 writes version 27 frames by default. Set version 24 before
+  compressing when OpenZL 0.2.0 must be able to read the resulting frames.
+  The setting persists across compress calls on the context.
+  """
+  @spec set_format_version(reference(), integer()) :: :ok | {:error, String.t()}
+  def set_format_version(ctx, version) when is_reference(ctx) and is_integer(version) do
+    NIF.nif_set_format_version(ctx, version)
+  end
+
   # ===========================================================================
   # Phase 2: Typed Compression
   # ===========================================================================
@@ -233,10 +245,20 @@ defmodule ExOpenzl do
   end
 
   @doc """
+  Creates a compressor using OpenZL's native LZ graph.
+
+  Attach it with `set_compressor/2` before calling `compress/2`. This graph
+  gains the decompression speed improvements in OpenZL 0.3.0. The default
+  serial compression path still uses OpenZL's zstd graph.
+  """
+  @spec create_lz_compressor() :: {:ok, reference()} | {:error, String.t()}
+  def create_lz_compressor, do: NIF.nif_create_lz_compressor()
+
+  @doc """
   Attaches a compressor to a compression context.
 
   After this call, `compress/2` on this context will use the compressor's
-  format-aware compression graph.
+  graph.
   """
   @spec set_compressor(reference(), reference()) :: :ok | {:error, String.t()}
   def set_compressor(ctx, compressor) when is_reference(ctx) and is_reference(compressor) do

@@ -24,6 +24,7 @@ defmodule ExOpenzl.NIF do
 
   # Phase 1: Compression Level
   def nif_set_compression_level(_ctx, _level), do: :erlang.nif_error(:not_loaded)
+  def nif_set_format_version(_ctx, _version), do: :erlang.nif_error(:not_loaded)
 
   # Phase 2: Typed Compression
   def nif_compress_typed_numeric(_ctx, _data, _element_width), do: :erlang.nif_error(:not_loaded)
@@ -37,5 +38,6 @@ defmodule ExOpenzl.NIF do
   # Phase 3: SDDL Compressor
   def nif_sddl_compile(_source), do: :erlang.nif_error(:not_loaded)
   def nif_create_sddl_compressor(_compiled), do: :erlang.nif_error(:not_loaded)
+  def nif_create_lz_compressor, do: :erlang.nif_error(:not_loaded)
   def nif_set_compressor(_ctx, _compressor), do: :erlang.nif_error(:not_loaded)
 end

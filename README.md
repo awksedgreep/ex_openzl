@@ -8,7 +8,8 @@ OpenZL extends zstd with typed and columnar compression, enabling significantly 
 
 - **One-shot compression** — compress/decompress binaries with a single call
 - **Reusable contexts** — amortize allocation cost across many operations
-- **Configurable compression levels** — levels 1-19 (same as zstd)
+- **Configurable compression levels** — levels 1-19 for the default zstd graph; levels 1-7 for native LZ
+- **Native LZ graph** — opt into OpenZL 0.3.0's faster decompression path
 - **Typed compression** — numeric, struct, and string-aware encoding
   - Numeric: delta coding for monotonic sequences (timestamps, counters)
   - Struct: fixed-width record encoding
@@ -21,7 +22,7 @@ OpenZL extends zstd with typed and columnar compression, enabling significantly 
 
 - Erlang/OTP 26+
 - Elixir 1.19+
-- CMake 3.14+
+- CMake 3.20.2+
 - C++17 compiler (clang or gcc)
 - Git (for fetching the OpenZL submodule)
 
@@ -32,7 +33,7 @@ Add `ex_openzl` to your dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:ex_openzl, "~> 0.4"}
+    {:ex_openzl, "~> 0.5"}
   ]
 end
 ```
@@ -83,6 +84,34 @@ allocating that output. Trusted larger frames can use an explicit byte limit:
 {:ok, ^data} = ExOpenzl.decompress(dctx, compressed)
 ```
 
+### Native LZ compression
+
+The default serial path uses OpenZL's zstd graph. To use the native LZ graph
+with OpenZL 0.3.0's improved decompression speed:
+
+```elixir
+{:ok, lz} = ExOpenzl.create_lz_compressor()
+{:ok, cctx} = ExOpenzl.create_compression_context()
+:ok = ExOpenzl.set_compression_level(cctx, 1)
+:ok = ExOpenzl.set_compressor(cctx, lz)
+{:ok, compressed} = ExOpenzl.compress(cctx, data)
+{:ok, ^data} = ExOpenzl.decompress(compressed)
+```
+
+### Frame compatibility
+
+OpenZL 0.3.0 writes format version 27 by default. OpenZL 0.2.0 cannot read
+those frames. Use a reusable context and set format version 24 when 0.2.0
+readers must decode newly written data:
+
+```elixir
+{:ok, cctx} = ExOpenzl.create_compression_context()
+:ok = ExOpenzl.set_format_version(cctx, 24)
+{:ok, compressed} = ExOpenzl.compress(cctx, data)
+```
+
+OpenZL 0.3.0 can decode frames written by 0.2.0.
+
 ### Typed columnar compression
 
 Pack structured data into typed columns for better compression ratios:
@@ -121,13 +150,13 @@ outputs. If you see this error with valid inputs, upgrade to `0.4.10` or later.
 
 ```elixir
 {:ok, info} = ExOpenzl.frame_info(compressed)
-# => %{format_version: 1, num_outputs: 3, outputs: [...]}
+# => %{format_version: 27, num_outputs: 3, outputs: [...]}
 ```
 
 ### SDDL format-aware compression
 
 ```elixir
-{:ok, compiled} = ExOpenzl.sddl_compile("u32 timestamp; u8 level;")
+{:ok, compiled} = ExOpenzl.sddl_compile("Row = {\nUInt64LE\nUInt8\n}\n: Row[_rem / 9]\n")
 {:ok, compressor} = ExOpenzl.create_sddl_compressor(compiled)
 
 {:ok, cctx} = ExOpenzl.create_compression_context()

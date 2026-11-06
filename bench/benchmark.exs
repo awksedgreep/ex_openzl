@@ -76,6 +76,11 @@ sddl_records =
 {:ok, small_compressed} = ExOpenzl.compress(small_text)
 {:ok, medium_compressed} = ExOpenzl.compress(medium_text)
 {:ok, large_compressed} = ExOpenzl.compress(large_text)
+{:ok, lz_compressor} = ExOpenzl.create_lz_compressor()
+{:ok, lz_cctx} = ExOpenzl.create_compression_context()
+:ok = ExOpenzl.set_compression_level(lz_cctx, 1)
+:ok = ExOpenzl.set_compressor(lz_cctx, lz_compressor)
+{:ok, large_lz_compressed} = ExOpenzl.compress(lz_cctx, large_text)
 
 {:ok, cctx_pre} = ExOpenzl.create_compression_context()
 {:ok, ts1k_compressed} = ExOpenzl.compress_typed(cctx_pre, {:numeric, timestamps_1k, 8})
@@ -106,6 +111,17 @@ IO.puts("── Context-based Compression ──")
 {:ok, dctx} = ExOpenzl.create_decompression_context()
 Bench.run("ctx compress medium", fn -> ExOpenzl.compress(cctx, medium_text) end)
 Bench.run("ctx decompress medium", fn -> ExOpenzl.decompress(dctx, medium_compressed) end)
+Bench.run("ctx compress large", fn -> ExOpenzl.compress(cctx, large_text) end)
+Bench.run("ctx decompress large", fn -> ExOpenzl.decompress(dctx, large_compressed) end)
+
+IO.puts("")
+IO.puts("── Native LZ (level 1) ──")
+Bench.run("lz compress large (#{byte_size(large_text)} B)", fn ->
+  ExOpenzl.compress(lz_cctx, large_text)
+end)
+Bench.run("lz decompress large (#{byte_size(large_lz_compressed)} B)", fn ->
+  ExOpenzl.decompress(dctx, large_lz_compressed)
+end)
 
 IO.puts("")
 IO.puts("── Compression Levels ──")
@@ -178,7 +194,8 @@ IO.puts("── Compression Ratios ──")
 for {label, original, compressed} <- [
   {"small text", small_text, small_compressed},
   {"medium text", medium_text, medium_compressed},
-  {"large text", large_text, large_compressed}
+  {"large text", large_text, large_compressed},
+  {"large text (native LZ)", large_text, large_lz_compressed}
 ] do
   ratio = byte_size(compressed) / byte_size(original) * 100
   IO.puts("  #{String.pad_trailing(label, 20)} #{byte_size(original)} -> #{byte_size(compressed)} bytes (#{:erlang.float_to_binary(ratio, decimals: 1)}%)")
